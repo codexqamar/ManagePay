@@ -1,8 +1,7 @@
 "use client"
 
 import { useState, useCallback } from "react"
-import { createUserWithEmailAndPassword, sendEmailVerification, updateProfile } from "firebase/auth"
-import { auth } from "@/lib/firebase"
+import { signOutUser, signUpWithEmail } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -122,24 +121,11 @@ export function SignupForm({ onSignup, onSwitchToLogin }: SignupFormProps) {
 
       console.log("Starting signup process...")
 
-      // Firebase signup
-      const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password)
-      const user = userCredential.user
-      console.log("User created:", user.email)
-
-      // Update user profile with name
-      await updateProfile(user, {
-        displayName: formData.name
-      })
-      console.log("Profile updated with name")
-
-      // Send email verification
-      console.log("Sending verification email...")
-      await sendEmailVerification(user)
-      console.log("Verification email sent")
+      const user = await signUpWithEmail(formData.email, formData.password, formData.name)
+      console.log("User created:", user?.email)
 
       // Sign out user immediately after signup
-      await auth.signOut()
+      await signOutUser()
       console.log("User signed out")
 
       toast({
@@ -154,8 +140,10 @@ export function SignupForm({ onSignup, onSwitchToLogin }: SignupFormProps) {
       console.error("Signup error:", error)
       
       let errorMessage = "Signup failed"
-      if (error.code === 'auth/email-already-in-use') {
+      if (error.message?.toLowerCase().includes("already registered")) {
         errorMessage = "Email already in use"
+      } else if (error.message?.toLowerCase().includes("password")) {
+        errorMessage = error.message
       } else if (error.code === 'auth/invalid-email') {
         errorMessage = "Invalid email address"
       } else if (error.code === 'auth/weak-password') {

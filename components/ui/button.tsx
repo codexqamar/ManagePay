@@ -2,7 +2,7 @@
 import * as React from "react";
 
 type Variant = "default" | "outline" | "ghost" | "destructive";
-export type Size = "sm" | "md" | "lg";
+export type Size = "sm" | "md" | "lg" | "icon";
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
@@ -21,6 +21,7 @@ const SIZE_CLASSES: Record<Size, string> = {
   sm: "px-3 py-1.5 text-sm",
   md: "px-4 py-2 text-sm",
   lg: "px-6 py-3 text-base",
+  icon: "h-10 w-10 p-0",
 };
 
 const VARIANT_CLASSES: Record<Variant, string> = {

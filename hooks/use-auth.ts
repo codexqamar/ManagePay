@@ -1,21 +1,20 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { 
-  User,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged
-} from 'firebase/auth'
-import { auth } from '@/lib/firebase'
+import {
+  type AppUser,
+  onAuthStateChanged,
+  signInWithEmail,
+  signOutUser,
+  signUpWithEmail,
+} from '@/lib/auth'
 
 export function useAuth() {
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<AppUser | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged((user) => {
       setUser(user)
       setLoading(false)
     })
@@ -23,18 +22,16 @@ export function useAuth() {
     return () => unsubscribe()
   }, [])
 
-  const signUp = async (email: string, password: string) => {
-    const result = await createUserWithEmailAndPassword(auth, email, password)
-    return result.user
+  const signUp = async (email: string, password: string, name = "") => {
+    return signUpWithEmail(email, password, name)
   }
 
   const signIn = async (email: string, password: string) => {
-    const result = await signInWithEmailAndPassword(auth, email, password)
-    return result.user
+    return signInWithEmail(email, password)
   }
 
   const logout = async () => {
-    await signOut(auth)
+    await signOutUser()
   }
 
   return {

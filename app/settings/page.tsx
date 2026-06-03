@@ -11,8 +11,14 @@ import { Switch } from "@/components/ui/switch";
 import { Avatar } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { auth } from "@/lib/firebase";
-import { onAuthStateChanged, updateProfile, signOut, User, updateEmail } from "firebase/auth";
+import {
+  getUserDisplayName,
+  getUserPhotoUrl,
+  onAuthStateChanged,
+  signOutUser,
+  updateUserProfile,
+  type AppUser,
+} from "@/lib/auth";
 
 export default function SettingsPage() {
   const { theme, setTheme, resolvedTheme } = useTheme();
@@ -21,7 +27,7 @@ export default function SettingsPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [tempPhotoURL, setTempPhotoURL] = useState(""); 
   const [saving, setSaving] = useState(false);
@@ -29,18 +35,17 @@ export default function SettingsPage() {
   useEffect(() => {
     setMounted(true);
 
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged((currentUser) => {
       setUser(currentUser);
       if (currentUser) {
-        setName(currentUser.displayName || "");
+        setName(getUserDisplayName(currentUser));
         setEmail(currentUser.email || "");
 
-        // ✅ Per-user profile photo check
-        const savedPhoto = localStorage.getItem(`profilePhoto_${currentUser.uid}`);
+        const savedPhoto = localStorage.getItem(`profilePhoto_${currentUser.id}`);
         if (savedPhoto) {
           setTempPhotoURL(savedPhoto);
         } else {
-          setTempPhotoURL(currentUser.photoURL || "/hmq.jpeg");
+          setTempPhotoURL(getUserPhotoUrl(currentUser) || "/hmq.jpeg");
         }
       }
       setLoading(false);
@@ -71,8 +76,7 @@ export default function SettingsPage() {
       setTempPhotoURL(base64);
 
       if (user) {
-        // ✅ Save with user UID
-        localStorage.setItem(`profilePhoto_${user.uid}`, base64);
+        localStorage.setItem(`profilePhoto_${user.id}`, base64);
       }
     };
     reader.readAsDataURL(file);
@@ -83,15 +87,12 @@ export default function SettingsPage() {
 
     setSaving(true);
     try {
-      await updateProfile(user, {
-        displayName: name,
-        // photoURL localStorage me hai, Firebase pe nahi bhejenge
+      const updatedUser = await updateUserProfile({
+        name,
+        email: email !== user.email ? email : undefined,
       });
 
-      if (email !== user.email) {
-        await updateEmail(user, email);
-      }
-
+      setUser(updatedUser);
       setIsEditing(false);
       alert("Profile updated successfully!");
     } catch (error: any) {
@@ -106,8 +107,8 @@ export default function SettingsPage() {
 
 const handleSignOut = async () => {
   try {
-    await signOut(auth);
-    router.push("http://localhost:3000/");  // ✅ redirect to login page
+    await signOutUser();
+    router.push("/");
   } catch (error) {
     console.error("Error signing out:", error);
   }
@@ -203,7 +204,7 @@ const handleSignOut = async () => {
                 <>
                   <div className="flex justify-between items-center">
                     <span className="font-medium">Name</span>
-                    <span className="text-gray-600">{user.displayName || "Not set"}</span>
+                    <span className="text-gray-600">{getUserDisplayName(user)}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="font-medium">Email</span>
@@ -211,7 +212,7 @@ const handleSignOut = async () => {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="font-medium">User ID</span>
-                    <span className="text-gray-600 text-xs">{user.uid.slice(0, 8)}...</span>
+                    <span className="text-gray-600 text-xs">{user.id.slice(0, 8)}...</span>
                   </div>
                 </>
               )}
@@ -231,10 +232,10 @@ const handleSignOut = async () => {
                     variant="outline" 
                     onClick={() => {
                       setIsEditing(false);
-                      setName(user.displayName || "");
+                      setName(getUserDisplayName(user));
                       setEmail(user.email || "");
-                      const savedPhoto = localStorage.getItem(`profilePhoto_${user.uid}`);
-                      setTempPhotoURL(savedPhoto || user.photoURL || "/hmq.jpeg");
+                      const savedPhoto = localStorage.getItem(`profilePhoto_${user.id}`);
+                      setTempPhotoURL(savedPhoto || getUserPhotoUrl(user) || "/hmq.jpeg");
                     }}
                     className="flex-1"
                     disabled={saving}

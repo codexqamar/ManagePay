@@ -1,9 +1,15 @@
 import { type NextRequest, NextResponse } from "next/server"
 import Stripe from "stripe"
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2024-12-18.acacia",
-})
+function getStripeClient() {
+  if (!process.env.STRIPE_SECRET_KEY) {
+    throw new Error("STRIPE_SECRET_KEY is missing")
+  }
+
+  return new Stripe(process.env.STRIPE_SECRET_KEY, {
+    apiVersion: "2025-08-27.basil",
+  })
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -90,6 +96,7 @@ export async function POST(request: NextRequest) {
     const normalizedCurrency = currency.toLowerCase()
     const finalCurrency = supportedCurrencies.includes(normalizedCurrency) ? normalizedCurrency : "usd"
 
+    const stripe = getStripeClient()
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(amount * 100), // Convert to cents
       currency: finalCurrency,

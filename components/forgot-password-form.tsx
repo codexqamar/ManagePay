@@ -1,8 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { sendPasswordResetEmail } from "firebase/auth"
-import { auth } from "@/lib/firebase"
+import { sendPasswordReset } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -35,7 +34,7 @@ export function ForgotPasswordForm({ onBackToLogin, onSwitchToSignup }: ForgotPa
       }
 
       console.log("Sending password reset email to:", email)
-      await sendPasswordResetEmail(auth, email)
+      await sendPasswordReset(email)
       console.log("Password reset email sent successfully")
       setEmailSent(true)
       

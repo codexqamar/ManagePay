@@ -1,15 +1,17 @@
 import { InvoicePayment } from "@/components/invoice-payment"
 
 interface PageProps {
-  params: {
+  params: Promise<{
     invoiceId: string
-  }
+  }>
 }
 
-export default function PayInvoicePage({ params }: PageProps) {
+export default async function PayInvoicePage({ params }: PageProps) {
+  const { invoiceId } = await params
+
   return (
     <div className="min-h-screen bg-background">
-      <InvoicePayment invoiceId={params.invoiceId} />
+      <InvoicePayment invoiceId={invoiceId} />
     </div>
   )
 }

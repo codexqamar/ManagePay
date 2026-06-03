@@ -1,8 +1,7 @@
 "use client"
 
 import { useState, useCallback } from "react"
-import { signInWithEmailAndPassword } from "firebase/auth"
-import { auth } from "@/lib/firebase"
+import { isUserEmailVerified, signInWithEmail, signOutUser } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -106,13 +105,11 @@ export function LoginForm({ onLogin, onSwitchToSignup, onSwitchToForgotPassword 
         return
       }
 
-      // Firebase login
-      const userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password)
-      const user = userCredential.user
+      const user = await signInWithEmail(formData.email, formData.password)
 
       // Check if email is verified
-      if (!user.emailVerified) {
-        await auth.signOut()
+      if (!isUserEmailVerified(user)) {
+        await signOutUser()
         toast({
           title: "Email Not Verified",
           description: "Please verify your email before logging in. Check your inbox and spam folder."
@@ -130,7 +127,11 @@ export function LoginForm({ onLogin, onSwitchToSignup, onSwitchToForgotPassword 
       console.error("Login error:", error)
       
       let errorMessage = "Login failed"
-      if (error.code === 'auth/invalid-email') {
+      if (error.message?.toLowerCase().includes("invalid login credentials")) {
+        errorMessage = "Invalid email or password"
+      } else if (error.message?.toLowerCase().includes("email not confirmed")) {
+        errorMessage = "Please verify your email before logging in"
+      } else if (error.code === 'auth/invalid-email') {
         errorMessage = "Invalid email address"
       } else if (error.code === 'auth/user-not-found') {
         errorMessage = "No account found with this email address"

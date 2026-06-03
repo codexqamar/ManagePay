@@ -1,34 +1,37 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { onAuthStateChanged, signOut } from "firebase/auth"
-import { auth } from "@/lib/firebase"
+import {
+  getUserDisplayName,
+  isUserEmailVerified,
+  onAuthStateChanged,
+  signOutUser,
+  type AppUser,
+} from "@/lib/auth"
 import { LoginForm } from "@/components/login-form"
 import { SignupForm } from "@/components/signup-form"
 import { ForgotPasswordForm } from "@/components/forgot-password-form"
 import { InvoiceGenerator } from "@/components/invoice-generator"
 import { Sidebar } from "@/components/sidebar"
-import { Button } from "@/components/ui/button"
-import { LogOut, User } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 export default function HomePage() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false)
   const [showSignup, setShowSignup] = useState(false)
   const [showForgotPassword, setShowForgotPassword] = useState(false)
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<{ email?: string; name: string } | null>(null)
   const { toast } = useToast()
 
   // Simple auth check - run only once
   useEffect(() => {
     console.log("Auth check running...")
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged((user: AppUser | null) => {
       console.log("Auth state:", user ? "Logged in" : "Logged out")
-      if (user && user.emailVerified) {
+      if (user && isUserEmailVerified(user)) {
         setIsLoggedIn(true)
         setUser({
           email: user.email,
-          name: user.displayName || user.email
+          name: getUserDisplayName(user),
         })
       } else {
         setIsLoggedIn(false)
@@ -49,7 +52,7 @@ export default function HomePage() {
 
   const handleLogout = async () => {
     try {
-      await signOut(auth)
+      await signOutUser()
       toast({
         title: "Logged out",
         description: "You have been logged out successfully"

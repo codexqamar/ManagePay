@@ -1,8 +1,6 @@
 "use client"
 
-import { useState } from "react"
-import { signOut } from "firebase/auth"
-import { auth } from "@/lib/firebase"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { FileText, CreditCard, BarChart3, Settings, Building2, Plus, Menu, X, LogOut, User } from "lucide-react"
@@ -10,6 +8,12 @@ import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
+import {
+  getCurrentUser,
+  onAuthStateChanged,
+  signOutUser,
+  type AppUser,
+} from "@/lib/auth"
 
 const navigation = [
   { name: "Invoice Generator", icon: FileText, href: "/", current: false },
@@ -21,9 +25,14 @@ const navigation = [
 
 export function Sidebar() {
   const [isOpen, setIsOpen] = useState(false)
+  const [user, setUser] = useState<AppUser | null>(null)
   const pathname = usePathname()
   const { toast } = useToast()
-  const user = auth.currentUser
+
+  useEffect(() => {
+    getCurrentUser().then(setUser)
+    return onAuthStateChanged(setUser)
+  }, [])
 
   const updatedNavigation = navigation.map((item) => ({
     ...item,
@@ -32,7 +41,7 @@ export function Sidebar() {
 
   const handleLogout = async () => {
     try {
-      await signOut(auth)
+      await signOutUser()
       toast({
         title: "Logged out",
         description: "You have been logged out successfully"
