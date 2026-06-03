@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import {
   getUserDisplayName,
   isUserEmailVerified,
@@ -11,11 +12,10 @@ import {
 import { LoginForm } from "@/components/login-form"
 import { SignupForm } from "@/components/signup-form"
 import { ForgotPasswordForm } from "@/components/forgot-password-form"
-import { InvoiceGenerator } from "@/components/invoice-generator"
-import { Sidebar } from "@/components/sidebar"
 import { useToast } from "@/hooks/use-toast"
 
 export default function HomePage() {
+  const router = useRouter()
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false)
   const [showSignup, setShowSignup] = useState(false)
   const [showForgotPassword, setShowForgotPassword] = useState(false)
@@ -41,6 +41,13 @@ export default function HomePage() {
 
     return () => unsubscribe()
   }, [])
+
+  // Redirect authenticated users to the dashboard
+  useEffect(() => {
+    if (isLoggedIn) {
+      router.push("/dashboard")
+    }
+  }, [isLoggedIn, router])
 
   const handleLogin = () => {
     // Handled by auth state
@@ -110,26 +117,8 @@ export default function HomePage() {
   }
 
   return (
-    <div className="flex h-screen bg-background">
-      <Sidebar />
-      <main className="flex-1 overflow-auto">
-        
-          <div className="px-6 py-4">
-            <div className="flex justify-between items-center">
-              <div>
-                <h1 className="text-3xl font-bold text-foreground mb-2">Payemnet Terminal</h1>
-                <p className="text-muted-foreground">Manage invoices,payments and track your business revenue</p>
-              </div>
-              
-            
-            </div>
-          </div>
-       
-
-        <div className="p-6">
-          <InvoiceGenerator />
-        </div>
-      </main>
+    <div className="flex items-center justify-center h-full">
+      <p className="text-muted-foreground">Redirecting to dashboard...</p>
     </div>
   )
 }

@@ -2,7 +2,7 @@ import { PaymentDashboard } from "@/components/payment-dashboard"
 
 export default function DashboardPage() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="p-6">
       <PaymentDashboard />
     </div>
   )

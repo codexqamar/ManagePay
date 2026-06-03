@@ -2,7 +2,7 @@ import { CompanyManagement } from "@/components/company-management"
 
 export default function CompaniesPage() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="p-6">
       <CompanyManagement />
     </div>
   )

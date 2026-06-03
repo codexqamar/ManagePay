@@ -2,7 +2,7 @@ import { PaymentTerminal } from "@/components/payment-terminal"
 
 export default function TerminalPage() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="p-6">
       <PaymentTerminal />
     </div>
   )

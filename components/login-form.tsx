@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useCallback } from "react"
+import { useRouter } from "next/navigation"
 import { isUserEmailVerified, signInWithEmail, signOutUser } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -16,6 +17,7 @@ interface LoginFormProps {
 }
 
 export function LoginForm({ onLogin, onSwitchToSignup, onSwitchToForgotPassword }: LoginFormProps) {
+  const router = useRouter()
   const { toast } = useToast()
   const [formData, setFormData] = useState({
     email: "",
@@ -122,6 +124,7 @@ export function LoginForm({ onLogin, onSwitchToSignup, onSwitchToForgotPassword 
         description: "Welcome back!"
       })
       onLogin()
+      router.push("/dashboard")
       
     } catch (error: any) {
       console.error("Login error:", error)

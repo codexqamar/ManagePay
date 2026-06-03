@@ -4,6 +4,7 @@ import { GeistMono } from "geist/font/mono"
 import { Analytics } from "@vercel/analytics/next"
 import Script from "next/script"
 import { Providers } from "./providers"
+import ClientLayout from "./client-layout"
 import "./globals.css"
 
 export const metadata: Metadata = {
@@ -42,7 +43,9 @@ export default function RootLayout({
           `}
         </Script>
         <Providers>
-          {children}
+          <ClientLayout>
+            {children}
+          </ClientLayout>
         </Providers>
         <Analytics />
       </body>

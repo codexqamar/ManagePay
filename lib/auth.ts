@@ -1,5 +1,7 @@
 import type { User } from "@supabase/supabase-js"
 import { getSupabaseBrowserClient } from "@/lib/supabase"
+import { getProfileById, upsertProfile } from "@/lib/database"
+import type { Profile } from "@/lib/supabase-types"
 
 export type AppUser = User
 
@@ -39,6 +41,12 @@ export async function getCurrentUser() {
   return data.user
 }
 
+export async function getUserProfile(): Promise<Profile | null> {
+  const user = await getCurrentUser()
+  if (!user) return null
+  return getProfileById(user.id)
+}
+
 export async function signUpWithEmail(email: string, password: string, name: string) {
   const supabase = getSupabaseBrowserClient()
   const origin = typeof window !== "undefined" ? window.location.origin : undefined
@@ -59,6 +67,11 @@ export async function signUpWithEmail(email: string, password: string, name: str
     throw error
   }
 
+  // NOTE: We intentionally do NOT upsert the profile here.
+  // After signup the browser session is still anonymous (email verification
+  // pending), so RLS would block the insert. The database trigger
+  // `on_auth_user_created` handles profile creation server-side.
+
   return data.user
 }
 
@@ -73,7 +86,27 @@ export async function signInWithEmail(email: string, password: string) {
     throw error
   }
 
-  return data.user
+  const user = data.user
+  if (!user) {
+    throw new Error("Login succeeded but no user returned")
+  }
+
+  // Verify the user has a profile row. If the DB trigger ever missed
+  // (race condition, legacy user, etc.), create it now while we are
+  // authenticated so RLS allows the insert.
+  const profile = await getProfileById(user.id)
+  if (!profile) {
+    await upsertProfile({
+      id: user.id,
+      email: user.email ?? email,
+      full_name: (user.user_metadata?.full_name as string | undefined) || null,
+      avatar_url: (user.user_metadata?.avatar_url as string | undefined) || null,
+      stripe_account_id: null,
+      stripe_account_enabled: false,
+    })
+  }
+
+  return user
 }
 
 export async function sendPasswordReset(email: string) {

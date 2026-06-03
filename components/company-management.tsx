@@ -72,14 +72,13 @@ export function CompanyManagement() {
   }
 
   const verifyStripeConnection = async (): Promise<boolean> => {
-    // Replace this with your actual implementation to check Stripe connection
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        // For demo purposes, randomly return connected status
-        // In a real app, you would check your backend or Stripe API
-        resolve(Math.random() > 0.5)
-      }, 500)
-    })
+    try {
+      const res = await fetch("/api/stripe/status")
+      const data = await res.json()
+      return data.connected === true
+    } catch {
+      return false
+    }
   }
 
   const formatCurrencyWithSettings = (amount: number) => {
