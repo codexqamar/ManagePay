@@ -15,6 +15,9 @@ import { CreditCard, Smartphone, QrCode, Link, DollarSign, Clock, CheckCircle, C
 import { useToast } from "@/hooks/use-toast"
 import { useAppStore } from "@/lib/store"
 import { CURRENCIES, formatCurrency } from "@/lib/currencies"
+import { Elements } from "@stripe/react-stripe-js"
+import { stripePromise } from "@/lib/stripe"
+import { TerminalCheckoutForm } from "@/components/terminal-checkout-form"
 
 interface PaymentMethod {
   id: string
@@ -99,6 +102,8 @@ export function PaymentTerminal() {
   const [generatedLink, setGeneratedLink] = useState("")
   const [isGeneratingLink, setIsGeneratingLink] = useState(false)
   const [transactionId, setTransactionId] = useState("")
+  const [clientSecret, setClientSecret] = useState<string | null>(null)
+  const [isInitializingStripe, setIsInitializingStripe] = useState(false)
 
   // Payment method specific states
   const [cardDetails, setCardDetails] = useState<CardDetails>({
@@ -171,38 +176,7 @@ export function PaymentTerminal() {
 
     // Validate method-specific fields
     if (selectedMethod === "card") {
-      if (!cardDetails.number || cardDetails.number.replace(/\s/g, '').length < 16) {
-        toast({
-          title: "Invalid Card Number",
-          description: "Please enter a valid card number",
-          variant: "destructive",
-        })
-        return false
-      }
-      if (!cardDetails.name) {
-        toast({
-          title: "Missing Cardholder Name",
-          description: "Please enter the cardholder name",
-          variant: "destructive",
-        })
-        return false
-      }
-      if (!cardDetails.expiry || !/\d{2}\/\d{2}/.test(cardDetails.expiry)) {
-        toast({
-          title: "Invalid Expiry Date",
-          description: "Please enter a valid expiry date (MM/YY)",
-          variant: "destructive",
-        })
-        return false
-      }
-      if (!cardDetails.cvc || cardDetails.cvc.length < 3) {
-        toast({
-          title: "Invalid CVC",
-          description: "Please enter a valid CVC code",
-          variant: "destructive",
-        })
-        return false
-      }
+      // Validation handled by Stripe Elements securely
     }
 
     if (selectedMethod === "mobile" && !mobileDetails.phone) {
@@ -246,6 +220,37 @@ export function PaymentTerminal() {
 
   const processPayment = async () => {
     if (!validateForm()) return
+
+    if (selectedMethod === "card") {
+      setIsInitializingStripe(true)
+      try {
+        const res = await fetch("/api/create-payment-intent", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            amount: totalWithFees,
+            currency: selectedCurrency,
+            description,
+            customerEmail,
+            metadata: {
+              transactionId,
+            }
+          }),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || "Failed to initialize payment")
+        setClientSecret(data.clientSecret)
+      } catch (error) {
+        toast({
+          title: "Initialization Failed",
+          description: error instanceof Error ? error.message : "Failed to connect to Stripe",
+          variant: "destructive",
+        })
+      } finally {
+        setIsInitializingStripe(false)
+      }
+      return
+    }
 
     setIsProcessing(true)
 
@@ -352,6 +357,7 @@ export function PaymentTerminal() {
     setSelectedMethod("")
     setGeneratedLink("")
     setPaymentSuccess(false)
+    setClientSecret(null)
     setCardDetails({
       number: "",
       name: "",
@@ -558,70 +564,11 @@ export function PaymentTerminal() {
             </div>
 
             {/* Method-specific fields */}
-            {selectedMethod === "card" && (
-              <div className="mt-6 p-4 border rounded-lg bg-gray-50">
-                <h4 className="font-medium mb-4 flex items-center gap-2">
-                  <CreditCard className="h-4 w-4" />
-                  Card Details
-                </h4>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="cardNumber">Card Number *</Label>
-                    <Input
-                      id="cardNumber"
-                      value={cardDetails.number}
-                      onChange={(e) => setCardDetails({...cardDetails, number: formatCardNumber(e.target.value)})}
-                      placeholder="1234 5678 9012 3456"
-                      maxLength={19}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="cardName">Cardholder Name *</Label>
-                    <Input
-                      id="cardName"
-                      value={cardDetails.name}
-                      onChange={(e) => setCardDetails({...cardDetails, name: e.target.value})}
-                      placeholder="John Doe"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="expiry">Expiry Date (MM/YY) *</Label>
-                      <Input
-                        id="expiry"
-                        value={cardDetails.expiry}
-                        onChange={(e) => setCardDetails({...cardDetails, expiry: formatExpiryDate(e.target.value)})}
-                        placeholder="MM/YY"
-                        maxLength={5}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="cvc">CVC *</Label>
-                      <Input
-                        id="cvc"
-                        type="password"
-                        value={cardDetails.cvc}
-                        onChange={(e) => setCardDetails({...cardDetails, cvc: e.target.value.replace(/\D/g, '')})}
-                        placeholder="123"
-                        maxLength={4}
-                      />
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <input 
-                      type="checkbox" 
-                      id="saveCard" 
-                      checked={cardDetails.saveCard}
-                      onChange={(e) => setCardDetails({...cardDetails, saveCard: e.target.checked})}
-                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <Label htmlFor="saveCard" className="text-sm">Save card for future payments</Label>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Lock className="h-3 w-3" />
-                    Your card details are encrypted and secure
-                  </div>
-                </div>
+            {selectedMethod === "card" && !clientSecret && (
+              <div className="mt-6 p-4 border rounded-lg bg-gray-50 text-center">
+                <CreditCard className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                <h4 className="font-medium mb-1">Secure Card Payment</h4>
+                <p className="text-sm text-muted-foreground mb-4">You will enter card details securely via Stripe on the next step.</p>
               </div>
             )}
 
@@ -798,27 +745,75 @@ export function PaymentTerminal() {
       </div>
 
       {/* Action Buttons */}
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-1 gap-4">
-        <Button
-          onClick={processPayment}
-          disabled={isProcessing || !amount || !description || !selectedMethod}
-          className="w-full"
-          size="lg"
-        >
-          {isProcessing ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Processing...
-            </>
-          ) : (
-            <>
-              <CreditCard className="h-4 w-4 mr-2" />
-              Process Payment
-            </>
-          )}
-        </Button>
-        
-      </div>
+      {!clientSecret && (
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-1 gap-4">
+          <Button
+            onClick={processPayment}
+            disabled={isProcessing || isInitializingStripe || !amount || !description || !selectedMethod}
+            className="w-full"
+            size="lg"
+          >
+            {isProcessing || isInitializingStripe ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              <>
+                <CreditCard className="h-4 w-4 mr-2" />
+                {selectedMethod === "card" ? "Proceed to Card Details" : "Process Payment"}
+              </>
+            )}
+          </Button>
+        </div>
+      )}
+
+      {/* Stripe Payment Form */}
+      {clientSecret && selectedMethod === "card" && (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5" />
+              Secure Checkout
+            </CardTitle>
+            <CardDescription>Enter card details below to complete payment</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Elements
+              stripe={stripePromise}
+              options={{
+                clientSecret,
+                appearance: { theme: "stripe" },
+              }}
+            >
+              <TerminalCheckoutForm 
+                amount={totalWithFees} 
+                currency={selectedCurrency}
+                onSuccess={(stripePaymentIntentId) => {
+                  const paymentData = {
+                    id: transactionId,
+                    amount: Number.parseFloat(amount),
+                    currency: selectedCurrency,
+                    description,
+                    customerEmail,
+                    customerName,
+                    customerPhone,
+                    paymentMethod: "card",
+                    status: "completed",
+                    date: new Date().toISOString(),
+                    processingFee,
+                    totalWithFees,
+                    methodDetails: { stripePaymentIntentId }
+                  }
+                  addTransaction(paymentData)
+                  setPaymentSuccess(true)
+                }}
+                onCancel={() => setClientSecret(null)}
+              />
+            </Elements>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Transaction ID */}
       <div className="mt-4 text-center text-sm text-muted-foreground">

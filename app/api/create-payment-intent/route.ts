@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
       amount: Math.round(amount * 100),
       currency: finalCurrency,
       description,
-      receipt_email: customerEmail,
+      ...(customerEmail ? { receipt_email: customerEmail } : {}),
       metadata: metadata || {},
       automatic_payment_methods: {
         enabled: true,

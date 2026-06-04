@@ -364,7 +364,7 @@ export function PaymentDashboard() {
           </Table>
         </CardContent>
         <div className="py-8 bg-canvas-soft/30 flex justify-center border-t border-hairline">
-          <Button variant="link" className="text-caption font-bold text-ink-mute hover:text-primary transition-colors no-underline">
+          <Button variant="ghost" className="text-caption font-bold text-ink-mute hover:text-primary transition-colors no-underline">
             View Enterprise Ledger Data
           </Button>
         </div>
