@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { FileText, CreditCard, BarChart3, Settings, Building2, Plus, Menu, X, LogOut, ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/hooks/use-auth"
 
@@ -21,6 +21,7 @@ export function Sidebar() {
   const [isOpen, setIsOpen] = useState(false)
   const [isCollapsed, setIsCollapsed] = useState(false)
   const pathname = usePathname()
+  const router = useRouter()
   const { toast } = useToast()
   const { user, profile, logout } = useAuth()
 
@@ -47,6 +48,8 @@ export function Sidebar() {
   const handleLogout = async () => {
     try {
       await logout()
+      router.replace("/")
+      router.refresh()
       toast({
         title: "Logged out",
         description: "You have been logged out successfully"
