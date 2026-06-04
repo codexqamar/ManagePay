@@ -57,7 +57,7 @@ export function SettingsDialog() {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Currency & Localization</CardTitle>
+              <CardTitle className="text-lg">Currency & Localisation</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
@@ -98,7 +98,7 @@ export function SettingsDialog() {
                       defaultTaxRate: Number.parseFloat(e.target.value) / 100 || 0,
                     })
                   }
-                  placeholder="10"
+                  placeholder="20"
                   min="0"
                   max="100"
                   step="0.1"
@@ -138,7 +138,7 @@ export function SettingsDialog() {
                       processingFeeFixed: Number.parseFloat(e.target.value) || 0,
                     })
                   }
-                  placeholder="0.30"
+                  placeholder="0.20"
                   min="0"
                   step="0.01"
                 />

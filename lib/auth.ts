@@ -123,14 +123,14 @@ export async function sendPasswordReset(email: string) {
   }
 }
 
-export async function updateUserProfile(values: { name?: string; email?: string }) {
+export async function updateUserProfile(values: { name?: string; email?: string; photoUrl?: string }) {
   const supabase = getSupabaseBrowserClient()
   const { data, error } = await supabase.auth.updateUser({
     email: values.email,
-    data: values.name
+    data: values.name || values.photoUrl
       ? {
-          full_name: values.name,
-          name: values.name,
+          ...(values.name ? { full_name: values.name, name: values.name } : {}),
+          ...(values.photoUrl ? { avatar_url: values.photoUrl, picture: values.photoUrl } : {}),
         }
       : undefined,
   })

@@ -91,10 +91,10 @@ export const CURRENCIES: Currency[] = [
   { code: "PGK", name: "Papua New Guinea Kina", symbol: "K", decimals: 2 },
 ]
 
-export function formatCurrency(amount: number, currencyCode = "USD"): string {
+export function formatCurrency(amount: number, currencyCode = "GBP"): string {
   const currency = CURRENCIES.find((c) => c.code === currencyCode) || CURRENCIES[0]
 
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("en-GB", {
     style: "currency",
     currency: currencyCode,
     minimumFractionDigits: currency.decimals,

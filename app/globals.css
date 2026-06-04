@@ -54,8 +54,12 @@
 }
 
 @layer base {
+  html {
+    background-color: var(--color-canvas-soft);
+  }
+
   body {
-    background-color: var(--color-background);
+    background-color: var(--color-canvas-soft);
     color: var(--color-foreground);
     font-feature-settings: "ss01" on;
     -webkit-font-smoothing: antialiased;
@@ -68,6 +72,63 @@
 }
 
 @layer utilities {
+  .text-display-md {
+    font-size: 2.25rem;
+    line-height: 2.5rem;
+  }
+
+  .text-display-sm {
+    font-size: 1.875rem;
+    line-height: 2.25rem;
+  }
+
+  .text-heading-lg {
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+  }
+
+  .text-heading-md {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+  }
+
+  .text-heading-sm {
+    font-size: 1rem;
+    line-height: 1.5rem;
+  }
+
+  .text-body-lg {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+  }
+
+  .text-body-md {
+    font-size: 0.9375rem;
+    line-height: 1.5rem;
+  }
+
+  .text-caption {
+    font-size: 0.8125rem;
+    line-height: 1.25rem;
+  }
+
+  .text-micro-cap {
+    font-size: 0.6875rem;
+    line-height: 1rem;
+  }
+
+  .text-ink-mute-2 {
+    color: #8a99ad;
+  }
+
+  .border-hairline-input {
+    border-color: var(--color-hairline);
+  }
+
+  .shadow-xs {
+    box-shadow: 0 1px 1px rgba(0, 55, 112, 0.05);
+  }
+
   .text-tabular {
     font-variant-numeric: tabular-nums;
   }

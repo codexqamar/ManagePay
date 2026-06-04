@@ -22,6 +22,7 @@ import { Send, Copy, Link, Mail, Eye, Download } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { InvoicePreview } from "@/components/invoice-preview"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { formatCurrency } from "@/lib/currencies"
 
 interface EmailInvoiceDialogProps {
   invoiceId: string
@@ -45,7 +46,7 @@ export function EmailInvoiceDialog({
   const [email, setEmail] = useState(clientEmail)
   const [subject, setSubject] = useState(`Invoice ${invoiceNumber} - Payment Required`)
   const [message, setMessage] = useState(
-    `Dear Client,\n\nPlease find your invoice ${invoiceNumber} for $${amount.toFixed(2)} attached. You can pay this invoice securely using the link below.\n\nThank you for your business!\n\nBest regards`,
+    `Dear Client,\n\nPlease find your invoice ${invoiceNumber} for ${formatCurrency(amount, invoiceData?.currency)} attached. You can pay this invoice securely using the link below.\n\nThank you for your business!\n\nBest regards`,
   )
   const [includePaymentLink, setIncludePaymentLink] = useState(true)
   const [sendCopy, setSendCopy] = useState(false)
@@ -151,7 +152,7 @@ export function EmailInvoiceDialog({
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="client@example.com"
+                  placeholder="client@example.co.uk"
                 />
               </div>
 
@@ -216,7 +217,7 @@ export function EmailInvoiceDialog({
               </div>
               <div className="flex justify-between text-sm">
                 <span>Amount:</span>
-                <span className="font-medium">${amount.toFixed(2)}</span>
+                <span className="font-medium">{formatCurrency(amount, invoiceData?.currency)}</span>
               </div>
             </div>
           </TabsContent>

@@ -11,12 +11,12 @@ export function Avatar({
 }) {
   return (
     <div
-      className={`h-16 w-16 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden ${className}`}
+      className={`h-16 w-16 rounded-full bg-canvas-soft border border-hairline flex items-center justify-center overflow-hidden ${className}`}
     >
       {src ? (
         <img src={src} alt={alt} className="h-full w-full object-cover" />
       ) : (
-        <span className="text-lg font-semibold text-gray-600">
+        <span className="text-lg font-semibold text-ink-mute">
           {alt?.charAt(0).toUpperCase() ?? "U"}
         </span>
       )}

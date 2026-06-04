@@ -78,7 +78,7 @@ export function ForgotPasswordForm({ onBackToLogin, onSwitchToSignup }: ForgotPa
           <Input
             id="email"
             type="email"
-            placeholder="jane@company.com"
+            placeholder="name@company.co.uk"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required

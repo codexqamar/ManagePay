@@ -120,11 +120,11 @@ export function SignupForm({ onSignup, onSwitchToLogin }: SignupFormProps) {
     <div className="w-full space-y-8">
       <form onSubmit={handleSubmit} className="space-y-5">
         <div className="space-y-2">
-          <Label htmlFor="name" className="text-body-md font-medium text-ink">Full Name</Label>
+          <Label htmlFor="name" className="text-body-md font-medium text-ink">Full name</Label>
           <Input
             id="name"
             type="text"
-            placeholder="Jane Doe"
+            placeholder="Your name"
             value={formData.name}
             onChange={(e) => handleInputChange('name', e.target.value)}
             required
@@ -137,7 +137,7 @@ export function SignupForm({ onSignup, onSwitchToLogin }: SignupFormProps) {
           <Input
             id="email"
             type="email"
-            placeholder="jane@company.com"
+            placeholder="name@company.co.uk"
             value={formData.email}
             onChange={(e) => handleInputChange('email', e.target.value)}
             required

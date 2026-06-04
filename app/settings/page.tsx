@@ -45,7 +45,7 @@ export default function SettingsPage() {
         if (savedPhoto) {
           setTempPhotoURL(savedPhoto);
         } else {
-          setTempPhotoURL(getUserPhotoUrl(currentUser) || "/hmq.jpeg");
+          setTempPhotoURL(getUserPhotoUrl(currentUser) || "");
         }
       }
       setLoading(false);
@@ -90,6 +90,7 @@ export default function SettingsPage() {
       const updatedUser = await updateUserProfile({
         name,
         email: email !== user.email ? email : undefined,
+        photoUrl: tempPhotoURL || undefined,
       });
 
       setUser(updatedUser);
@@ -116,57 +117,59 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <div className="p-6 max-w-5xl mx-auto space-y-8 animate-pulse">
-        <div className="h-8 w-48 bg-slate-200 rounded mx-auto mb-2" />
-        <div className="h-4 w-64 bg-slate-100 rounded mx-auto" />
+      <div className="max-w-5xl mx-auto space-y-8 px-4 py-8 sm:px-6 animate-pulse">
+        <div className="h-8 w-48 bg-hairline rounded mx-auto mb-2" />
+        <div className="h-4 w-64 bg-canvas rounded mx-auto" />
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="p-12 text-center space-y-4">
-        <h1 className="text-2xl font-bold text-slate-900">Access Denied</h1>
-        <p className="text-slate-500">Please sign in to manage your account settings.</p>
-        <Button onClick={() => router.push("/")}>Return to Login</Button>
+      <div className="mx-auto max-w-md px-4 py-16 text-center space-y-4">
+        <h1 className="text-heading-lg font-bold text-ink">Access Denied</h1>
+        <p className="text-body-md text-ink-mute">Please sign in to manage your account settings.</p>
+        <Button onClick={() => router.push("/")} className="rounded-md">Return to Login</Button>
       </div>
     );
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-10 py-10 px-6">
+    <div className="max-w-5xl mx-auto space-y-8 px-4 py-6 sm:px-6 lg:py-8">
       {/* Page Header */}
-      <div className="space-y-1">
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Settings</h1>
-        <p className="text-sm font-medium text-slate-500">Manage your profile, billing, and system preferences.</p>
+      <div className="space-y-1 border-b border-hairline pb-6">
+        <h1 className="text-display-md font-bold tracking-tight text-ink">Settings</h1>
+        <p className="text-body-md font-medium text-ink-mute">Manage your profile, billing, and system preferences.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Navigation Tabs Placeholder - Modern SaaS style sidebar settings */}
-        <div className="lg:col-span-1 space-y-1">
-          <Button variant="ghost" className="w-full justify-start font-bold bg-slate-100 text-primary">General</Button>
-          <Button variant="ghost" className="w-full justify-start font-semibold text-slate-500 hover:text-slate-900">Billing</Button>
-          <Button variant="ghost" className="w-full justify-start font-semibold text-slate-500 hover:text-slate-900">Security</Button>
-          <Button variant="ghost" className="w-full justify-start font-semibold text-slate-500 hover:text-slate-900">API Keys</Button>
-          <Button variant="ghost" className="w-full justify-start font-semibold text-slate-500 hover:text-slate-900">Members</Button>
+        <div className="lg:col-span-1">
+          <div className="rounded-lg border border-hairline bg-canvas p-1.5 shadow-sm">
+            <Button variant="ghost" className="w-full justify-start rounded-md bg-canvas-soft font-bold text-primary">General</Button>
+            <Button variant="ghost" className="w-full justify-start rounded-md font-semibold text-ink-mute hover:text-ink">Billing</Button>
+            <Button variant="ghost" className="w-full justify-start rounded-md font-semibold text-ink-mute hover:text-ink">Security</Button>
+            <Button variant="ghost" className="w-full justify-start rounded-md font-semibold text-ink-mute hover:text-ink">API Keys</Button>
+            <Button variant="ghost" className="w-full justify-start rounded-md font-semibold text-ink-mute hover:text-ink">Members</Button>
+          </div>
         </div>
 
-        <div className="lg:col-span-2 space-y-8">
+        <div className="lg:col-span-2 space-y-6">
           {/* Profile Section */}
-          <section className="space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-6">
+          <section className="space-y-6 rounded-lg border border-hairline bg-canvas p-5 shadow-sm sm:p-6">
+            <div className="flex flex-col gap-4 border-b border-hairline pb-5 md:flex-row md:items-center md:justify-between">
               <div>
-                <h2 className="text-xl font-bold text-slate-900">Public Profile</h2>
-                <p className="text-xs text-slate-500 font-medium">This information will be visible across your enterprise.</p>
+                <h2 className="text-heading-lg font-bold text-ink">Public Profile</h2>
+                <p className="text-caption font-medium text-ink-mute">This information will be visible across your enterprise.</p>
               </div>
               <div className="flex gap-3">
                 {isEditing ? (
                   <>
-                    <Button onClick={handleSave} disabled={saving} size="sm" className="font-bold">{saving ? "Saving..." : "Save"}</Button>
-                    <Button variant="outline" onClick={() => setIsEditing(false)} size="sm" className="font-bold">Cancel</Button>
+                    <Button onClick={handleSave} disabled={saving} size="sm" className="rounded-md font-bold">{saving ? "Saving..." : "Save"}</Button>
+                    <Button variant="outline" onClick={() => setIsEditing(false)} size="sm" className="rounded-md border-hairline font-bold">Cancel</Button>
                   </>
                 ) : (
-                  <Button variant="outline" onClick={() => setIsEditing(true)} size="sm" className="font-bold">Edit Profile</Button>
+                  <Button variant="outline" onClick={() => setIsEditing(true)} size="sm" className="rounded-md border-hairline font-bold">Edit Profile</Button>
                 )}
               </div>
             </div>
@@ -174,12 +177,12 @@ export default function SettingsPage() {
             <div className="space-y-6">
               <div className="flex items-center gap-6">
                 <Avatar 
-                  src={isEditing ? tempPhotoURL : (tempPhotoURL || "/hmq.jpeg")} 
+                  src={tempPhotoURL} 
                   alt="Profile" 
-                  className="w-20 h-20 ring-4 ring-white shadow-sm border border-slate-200"
+                  className="w-20 h-20 ring-4 ring-canvas-soft shadow-sm border border-hairline"
                 />
                 {isEditing && (
-                  <label htmlFor="photo-upload" className="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 transition-colors">
+                  <label htmlFor="photo-upload" className="cursor-pointer bg-canvas-soft hover:bg-canvas text-ink-secondary px-3 py-1.5 rounded-md text-xs font-bold border border-hairline transition-colors">
                     Change Photo
                     <input id="photo-upload" type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
                   </label>
@@ -188,19 +191,19 @@ export default function SettingsPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Full Name</Label>
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-ink-mute">Full name</Label>
                   {isEditing ? (
-                    <Input value={name} onChange={(e) => setName(e.target.value)} className="h-10 border-slate-200 font-semibold" />
+                    <Input value={name} onChange={(e) => setName(e.target.value)} className="h-10 border-hairline font-semibold" />
                   ) : (
-                    <p className="text-sm font-bold text-slate-700 h-10 flex items-center">{getUserDisplayName(user)}</p>
+                    <p className="text-sm font-bold text-ink-secondary h-10 flex items-center">{getUserDisplayName(user)}</p>
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Email Address</Label>
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-ink-mute">Email Address</Label>
                   {isEditing ? (
-                    <Input value={email} onChange={(e) => setEmail(e.target.value)} className="h-10 border-slate-200 font-semibold" />
+                    <Input value={email} onChange={(e) => setEmail(e.target.value)} className="h-10 border-hairline font-semibold" />
                   ) : (
-                    <p className="text-sm font-bold text-slate-700 h-10 flex items-center">{user.email}</p>
+                    <p className="text-sm font-bold text-ink-secondary h-10 flex items-center">{user.email}</p>
                   )}
                 </div>
               </div>
@@ -208,18 +211,18 @@ export default function SettingsPage() {
           </section>
 
           {/* Preferences Section */}
-          <section className="space-y-6 pt-8 border-t border-slate-200">
+          <section className="space-y-6 rounded-lg border border-hairline bg-canvas p-5 shadow-sm sm:p-6">
              <div>
-                <h2 className="text-xl font-bold text-slate-900">Application Preferences</h2>
-                <p className="text-xs text-slate-500 font-medium">Customize your dashboard experience.</p>
+                <h2 className="text-heading-lg font-bold text-ink">Application Preferences</h2>
+                <p className="text-caption font-medium text-ink-mute">Customize your dashboard experience.</p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card className="border-slate-200 bg-white pro-shadow">
+                <Card className="border-hairline bg-canvas-soft shadow-none rounded-lg">
                   <CardContent className="p-5 flex items-center justify-between">
                     <div className="space-y-0.5">
-                      <p className="text-sm font-bold text-slate-700">Dark Mode</p>
-                      <p className="text-[11px] text-slate-400 font-medium">Toggle between light and dark UI.</p>
+                      <p className="text-sm font-bold text-ink-secondary">Dark Mode</p>
+                      <p className="text-[11px] text-ink-mute font-medium">Toggle between light and dark UI.</p>
                     </div>
                     <Switch
                       checked={isDark}
@@ -228,11 +231,11 @@ export default function SettingsPage() {
                   </CardContent>
                 </Card>
 
-                <Card className="border-slate-200 bg-white pro-shadow">
+                <Card className="border-hairline bg-canvas-soft shadow-none rounded-lg">
                   <CardContent className="p-5 flex items-center justify-between">
                     <div className="space-y-0.5">
-                      <p className="text-sm font-bold text-slate-700">Email Alerts</p>
-                      <p className="text-[11px] text-slate-400 font-medium">Receive real-time payment notifications.</p>
+                      <p className="text-sm font-bold text-ink-secondary">Email Alerts</p>
+                      <p className="text-[11px] text-ink-mute font-medium">Receive real-time payment notifications.</p>
                     </div>
                     <Switch checked={emailReceipts} onCheckedChange={setEmailReceipts} />
                   </CardContent>
@@ -241,17 +244,17 @@ export default function SettingsPage() {
           </section>
 
           {/* Danger Zone */}
-          <section className="pt-10">
-            <div className="p-6 bg-rose-50/50 border border-rose-100 rounded-xl space-y-4">
+          <section>
+            <div className="p-5 bg-ruby/5 border border-ruby/15 rounded-lg space-y-4 sm:p-6">
               <div className="space-y-1">
-                <h3 className="text-sm font-bold text-rose-700 uppercase tracking-wider">Security Actions</h3>
-                <p className="text-xs text-rose-600/70 font-medium">Protect your account and managed sessions.</p>
+                <h3 className="text-sm font-bold text-ruby uppercase tracking-wider">Security Actions</h3>
+                <p className="text-xs text-ruby/70 font-medium">Protect your account and managed sessions.</p>
               </div>
-              <div className="flex gap-4">
-                <Button variant="outline" onClick={handleSignOut} className="bg-white text-rose-600 border-rose-200 hover:bg-rose-50 font-bold text-xs h-9">
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Button variant="outline" onClick={handleSignOut} className="bg-canvas text-ruby border-ruby/20 hover:bg-ruby/10 font-bold text-xs h-9 rounded-md">
                   Sign Out of All Sessions
                 </Button>
-                <Button variant="ghost" className="text-rose-400 hover:text-rose-600 font-bold text-xs h-9">
+                <Button variant="ghost" className="text-ruby/60 hover:text-ruby hover:bg-ruby/10 font-bold text-xs h-9 rounded-md">
                   Reset API Keys
                 </Button>
               </div>
