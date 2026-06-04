@@ -3,11 +3,10 @@
 import { useState } from "react"
 import { sendPasswordReset } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, MailCheck } from "lucide-react"
 
 interface ForgotPasswordFormProps {
   onBackToLogin: () => void
@@ -25,38 +24,12 @@ export function ForgotPasswordForm({ onBackToLogin, onSwitchToSignup }: ForgotPa
     setIsLoading(true)
 
     try {
-      if (!email) {
-        toast({
-          title: "Error",
-          description: "Please enter your email address"
-        })
-        return
-      }
-
-      console.log("Sending password reset email to:", email)
+      if (!email) throw new Error("Please enter your email address")
       await sendPasswordReset(email)
-      console.log("Password reset email sent successfully")
       setEmailSent(true)
-      
-      toast({
-        title: "Email Sent Successfully!",
-        description: "Check your inbox for password reset instructions"
-      })
-      
+      toast({ title: "Email Sent", description: "Check your inbox for reset instructions." })
     } catch (error: any) {
-      console.error("Password reset error:", error)
-      
-      let errorMessage = "Failed to send reset email"
-      if (error.code === 'auth/user-not-found') {
-        errorMessage = "No account found with this email address"
-      } else if (error.code === 'auth/invalid-email') {
-        errorMessage = "Invalid email address"
-      }
-
-      toast({
-        title: "Error",
-        description: errorMessage
-      })
+      toast({ title: "Error", description: error.message || "Failed to send reset email" })
     } finally {
       setIsLoading(false)
     }
@@ -64,89 +37,76 @@ export function ForgotPasswordForm({ onBackToLogin, onSwitchToSignup }: ForgotPa
 
   if (emailSent) {
     return (
-      <Card className="w-full max-w-md mx-auto">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Check Your Email</CardTitle>
-          <CardDescription>We sent password reset instructions to your email</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="text-center p-4 bg-green-50 rounded-md">
-            <div className="text-green-600 font-medium mb-2">
-              Password reset email sent to:
-            </div>
-            <div className="text-sm text-gray-700">{email}</div>
-          </div>
+      <div className="w-full space-y-8 text-center animate-in fade-in zoom-in-95 duration-500">
+        <div className="mx-auto w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600 shadow-sm border border-emerald-100">
+          <MailCheck className="w-8 h-8" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-xl font-bold text-ink">Check your inbox</h2>
+          <p className="text-body-md text-ink-mute font-medium px-4">
+            We sent a secure recovery link to <span className="text-ink font-bold">{email}</span>.
+          </p>
+        </div>
+        
+        <div className="space-y-4 pt-4 border-t border-hairline">
+          <Button 
+            onClick={handleSubmit} 
+            variant="outline"
+            className="w-full h-11 font-bold shadow-sm"
+            disabled={isLoading}
+          >
+            {isLoading ? "Resending..." : "Resend Link"}
+          </Button>
           
-          <div className="text-xs text-muted-foreground p-2 bg-blue-50 rounded-md">
-            📧 Didn't receive the email? Check your spam folder or try again.
-          </div>
-
-          <div className="space-y-2">
-            <button 
-              onClick={handleSubmit} 
-              className="w-full py-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
-              disabled={isLoading}
-            >
-              {isLoading ? "Resending..." : "Resend Email"}
-            </button>
-            
-            <Button 
-              onClick={onBackToLogin} 
-              className="w-full flex items-center justify-center gap-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to Login
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+          <button 
+            onClick={onBackToLogin} 
+            className="w-full flex items-center justify-center gap-2 text-sm font-bold text-ink-mute hover:text-ink transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Return to sign in
+          </button>
+        </div>
+      </div>
     )
   }
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader className="text-center">
-        <CardTitle className="text-2xl">Reset Password</CardTitle>
-        <CardDescription>Enter your email to receive reset instructions</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email Address</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="your@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? "Sending..." : "Send Reset Instructions"}
-          </Button>
-        </form>
-
-        <div className="mt-4 space-y-2">
-          <button 
-            onClick={onBackToLogin}
-            className="w-full py-2 flex items-center justify-center gap-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Login
-          </button>
-          
-          <div className="text-center">
-            <button 
-              onClick={onSwitchToSignup}
-              className="text-blue-600 hover:text-blue-800 underline bg-transparent border-none cursor-pointer"
-            >
-              Don't have an account? Sign up
-            </button>
-          </div>
+    <div className="w-full space-y-8">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="space-y-2">
+          <Label htmlFor="email" className="text-body-md font-medium text-ink">Registered Email</Label>
+          <Input
+            id="email"
+            type="email"
+            placeholder="jane@company.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            className="h-11 rounded-sm border-hairline-input focus:ring-primary"
+          />
         </div>
-      </CardContent>
-    </Card>
+
+        <Button type="submit" className="w-full h-11 text-base font-bold shadow-sm" disabled={isLoading}>
+          {isLoading ? "Sending link..." : "Send Reset Link"}
+        </Button>
+      </form>
+
+      <div className="pt-6 border-t border-hairline flex flex-col items-center gap-4">
+        <button 
+          onClick={onBackToLogin}
+          className="flex items-center justify-center gap-2 text-sm font-bold text-ink-mute hover:text-ink transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to sign in
+        </button>
+        
+        <button 
+          onClick={onSwitchToSignup}
+          className="text-xs font-bold text-primary hover:text-primary-deep transition-colors"
+        >
+          Don't have an account? Create one
+        </button>
+      </div>
+    </div>
   )
 }

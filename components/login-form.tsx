@@ -4,7 +4,6 @@ import { useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { isUserEmailVerified, signInWithEmail, signOutUser } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
@@ -28,7 +27,6 @@ export function LoginForm({ onLogin, onSwitchToSignup, onSwitchToForgotPassword 
   const [emailError, setEmailError] = useState("")
   const [passwordError, setPasswordError] = useState("")
 
-  // Email validation - useCallback to prevent recreating function
   const validateEmail = useCallback((email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!email) {
@@ -43,7 +41,6 @@ export function LoginForm({ onLogin, onSwitchToSignup, onSwitchToForgotPassword 
     return true
   }, [])
 
-  // Password validation - useCallback to prevent recreating function
   const validatePassword = useCallback((password: string) => {
     if (!password) {
       setPasswordError("")
@@ -57,24 +54,14 @@ export function LoginForm({ onLogin, onSwitchToSignup, onSwitchToForgotPassword 
     return true
   }, [])
 
-  // Handle input changes
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
-    
-    // Validate only after input change
-    if (field === 'email') {
-      validateEmail(value)
-    } else if (field === 'password') {
-      validatePassword(value)
-    }
+    if (field === 'email') validateEmail(value)
+    else if (field === 'password') validatePassword(value)
   }
 
-  // Check if form is valid
   const isFormValid = () => {
-    return formData.email && 
-           !emailError && 
-           formData.password && 
-           !passwordError
+    return formData.email && !emailError && formData.password && !passwordError
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -82,167 +69,112 @@ export function LoginForm({ onLogin, onSwitchToSignup, onSwitchToForgotPassword 
     setIsLoading(true)
 
     try {
-      // Final validation
-      if (!formData.email || !formData.password) {
-        toast({
-          title: "Error",
-          description: "Please fill all fields"
-        })
-        return
-      }
-
-      if (emailError) {
-        toast({
-          title: "Error",
-          description: "Please enter a valid email address"
-        })
-        return
-      }
-
-      if (passwordError) {
-        toast({
-          title: "Error",
-          description: "Please enter a valid password"
-        })
-        return
-      }
+      if (!formData.email || !formData.password) throw new Error("Please fill all fields")
+      if (emailError) throw new Error("Please enter a valid email address")
+      if (passwordError) throw new Error("Please enter a valid password")
 
       const user = await signInWithEmail(formData.email, formData.password)
 
-      // Check if email is verified
       if (!isUserEmailVerified(user)) {
         await signOutUser()
         toast({
           title: "Email Not Verified",
-          description: "Please verify your email before logging in. Check your inbox and spam folder."
+          description: "Please verify your email before logging in."
         })
         return
       }
 
-      toast({
-        title: "Login Successful",
-        description: "Welcome back!"
-      })
+      toast({ title: "Login Successful", description: "Welcome back!" })
       onLogin()
       router.push("/dashboard")
       
     } catch (error: any) {
-      console.error("Login error:", error)
-      
-      let errorMessage = "Login failed"
-      if (error.message?.toLowerCase().includes("invalid login credentials")) {
-        errorMessage = "Invalid email or password"
-      } else if (error.message?.toLowerCase().includes("email not confirmed")) {
-        errorMessage = "Please verify your email before logging in"
-      } else if (error.code === 'auth/invalid-email') {
-        errorMessage = "Invalid email address"
-      } else if (error.code === 'auth/user-not-found') {
-        errorMessage = "No account found with this email address"
-      } else if (error.code === 'auth/wrong-password') {
-        errorMessage = "Incorrect password"
-      } else if (error.code === 'auth/too-many-requests') {
-        errorMessage = "Too many attempts. Try again later"
-      } else if (error.code === 'auth/user-disabled') {
-        errorMessage = "This account has been disabled"
-      } else if (error.code === 'auth/network-request-failed') {
-        errorMessage = "Network error. Please check your connection"
-      }
-
-      toast({
-        title: "Login Failed",
-        description: errorMessage
-      })
+      toast({ title: "Login Failed", description: error.message || "Invalid credentials" })
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader className="text-center">
-        <CardTitle className="text-2xl">Login</CardTitle>
-        <CardDescription>Enter your credentials to access your account</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Email Field */}
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="your@email.com"
-              value={formData.email}
-              onChange={(e) => handleInputChange('email', e.target.value)}
-              required
-              className={emailError ? "border-red-500" : ""}
-            />
-            {emailError && (
-              <div className="flex items-center gap-2 text-red-600 text-xs">
-                <AlertCircle className="w-3 h-3" />
-                {emailError}
-              </div>
-            )}
-          </div>
-
-          {/* Password Field */}
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <div className="relative">
-              <Input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                placeholder="Enter your password"
-                value={formData.password}
-                onChange={(e) => handleInputChange('password', e.target.value)}
-                required
-                className={`pr-10 ${passwordError ? "border-red-500" : ""}`}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-              >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
+    <div className="w-full space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="space-y-2">
+          <Label htmlFor="email" className="text-body-md font-medium text-ink">Email Address</Label>
+          <Input
+            id="email"
+            type="email"
+            placeholder="name@company.com"
+            value={formData.email}
+            onChange={(e) => handleInputChange('email', e.target.value)}
+            required
+            className={cn("h-11 rounded-sm border-hairline-input focus:ring-primary", emailError && "border-ruby")}
+          />
+          {emailError && (
+            <div className="flex items-center gap-2 text-ruby text-xs font-medium">
+              <AlertCircle className="w-3 h-3" />
+              {emailError}
             </div>
-            {passwordError && (
-              <div className="flex items-center gap-2 text-red-600 text-xs">
-                <AlertCircle className="w-3 h-3" />
-                {passwordError}
-              </div>
-            )}
-          </div>
+          )}
+        </div>
 
-          {/* Forgot Password Link */}
-          <div className="text-right">
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="password" title="Password" className="text-body-md font-medium text-ink">Password</Label>
             <button 
               type="button"
               onClick={onSwitchToForgotPassword}
-              className="p-0 h-auto text-sm text-blue-600 hover:text-blue-800 underline bg-transparent border-none cursor-pointer"
+              className="text-xs font-bold text-primary hover:text-primary-deep"
             >
-              Forgot your password?
+              Forgot password?
             </button>
           </div>
-
-          <Button 
-            type="submit" 
-            className="w-full" 
-            disabled={isLoading || !isFormValid()}
-          >
-            {isLoading ? "Logging in..." : "Login"}
-          </Button>
-        </form>
-
-        <div className="mt-4 text-center">
-          <button 
-            onClick={onSwitchToSignup}
-            className="w-full py-2 text-blue-600 hover:text-blue-800 hover:bg-gray-100 rounded-md transition-colors"
-          >
-            Don't have an account? Sign up
-          </button>
+          <div className="relative">
+            <Input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              placeholder="••••••••"
+              value={formData.password}
+              onChange={(e) => handleInputChange('password', e.target.value)}
+              required
+              className={cn("h-11 pr-10 rounded-sm border-hairline-input focus:ring-primary", passwordError && "border-ruby")}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-mute hover:text-ink transition-colors"
+            >
+              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+          {passwordError && (
+            <div className="flex items-center gap-2 text-ruby text-xs font-medium">
+              <AlertCircle className="w-3 h-3" />
+              {passwordError}
+            </div>
+          )}
         </div>
-      </CardContent>
-    </Card>
+
+        <Button 
+          type="submit" 
+          className="w-full h-11 text-base font-bold shadow-sm" 
+          disabled={isLoading || !isFormValid()}
+        >
+          {isLoading ? "Signing in..." : "Continue"}
+        </Button>
+      </form>
+
+      <div className="pt-4 border-t border-hairline">
+        <button 
+          onClick={onSwitchToSignup}
+          className="w-full py-2 text-ink-secondary text-sm font-bold hover:text-ink transition-colors"
+        >
+          Don't have an account? <span className="text-primary hover:text-primary-deep">Sign up</span>
+        </button>
+      </div>
+    </div>
   )
+}
+
+function cn(...inputs: any[]) {
+  return inputs.filter(Boolean).join(" ")
 }

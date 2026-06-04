@@ -1,11 +1,11 @@
 "use client"
 
 import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
   XAxis,
@@ -25,13 +25,16 @@ import {
   Users,
   FileText,
   Download,
-  Eye,
-  Send,
   MoreHorizontal,
   ArrowUpRight,
+  Plus,
+  Eye,
+  Send,
 } from "lucide-react"
 import { useAppStore } from "@/lib/store"
 import { formatCurrency } from "@/lib/currencies"
+import { cn } from "@/lib/utils"
+import Link from "next/link"
 
 interface DashboardStats {
   totalRevenue: number
@@ -51,20 +54,7 @@ interface Invoice {
   amount: number
   status: "paid" | "pending" | "overdue" | "draft"
   dueDate: string
-  createdDate: string
   companyName: string
-}
-
-interface RevenueData {
-  month: string
-  revenue: number
-  invoices: number
-}
-
-interface CompanyRevenue {
-  name: string
-  revenue: number
-  color: string
 }
 
 export function PaymentDashboard() {
@@ -84,29 +74,28 @@ export function PaymentDashboard() {
 
     return {
       totalRevenue: totalStats.revenue,
-      monthlyRevenue: totalStats.revenue * 0.15, // Estimate 15% monthly
+      monthlyRevenue: totalStats.revenue * 0.15,
       totalInvoices: totalStats.invoices,
-      paidInvoices: Math.floor(totalStats.invoices * 0.85), // 85% paid
-      pendingInvoices: Math.floor(totalStats.invoices * 0.1), // 10% pending
-      overdueInvoices: Math.floor(totalStats.invoices * 0.05), // 5% overdue
+      paidInvoices: Math.floor(totalStats.invoices * 0.85),
+      pendingInvoices: Math.floor(totalStats.invoices * 0.1),
+      overdueInvoices: Math.floor(totalStats.invoices * 0.05),
       totalClients: totalStats.clients,
-      revenueGrowth: 12.5, // Could be calculated from historical data
+      revenueGrowth: 12.5,
     }
   }
 
   const stats = calculateStats()
 
-  const generateRevenueData = (): RevenueData[] => {
+  const generateRevenueData = () => {
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"]
-    return months.map((month, index) => ({
+    return months.map((month) => ({
       month,
-      revenue: Math.floor((stats.totalRevenue / 6) * (0.8 + Math.random() * 0.4)), // Vary by ±20%
-      invoices: Math.floor((stats.totalInvoices / 6) * (0.8 + Math.random() * 0.4)),
+      revenue: Math.floor((stats.totalRevenue / 6) * (0.8 + Math.random() * 0.4)),
     }))
   }
 
-  const generateCompanyRevenue = (): CompanyRevenue[] => {
-    const colors = ["#059669", "#10b981", "#34d399", "#6ee7b7", "#a7f3d0"]
+  const generateCompanyRevenue = () => {
+    const colors = ["#533afd", "#4434d4", "#665efd", "#b9b9f9", "#1c1e54"]
     return companies.map((company, index) => ({
       name: company.name,
       revenue: company.stats.totalRevenue,
@@ -116,358 +105,285 @@ export function PaymentDashboard() {
 
   const generateInvoices = (): Invoice[] => {
     const statuses: Array<"paid" | "pending" | "overdue" | "draft"> = ["paid", "pending", "overdue"]
-    const clients = [
-      "John Doe",
-      "Jane Smith",
-      "Bob Johnson",
-      "Alice Brown",
-      "Charlie Wilson",
-      "Sarah Davis",
-      "Mike Wilson",
-    ]
-
-    return companies
-      .flatMap((company, companyIndex) =>
-        Array.from({ length: Math.min(company.stats.invoiceCount, 3) }, (_, index) => ({
-          id: `${companyIndex}-${index}`,
-          invoiceNumber: `INV-2024-${String(companyIndex * 100 + index + 1).padStart(3, "0")}`,
-          clientName: clients[Math.floor(Math.random() * clients.length)],
-          amount: Math.floor(Math.random() * 5000) + 500,
-          status: statuses[Math.floor(Math.random() * statuses.length)],
-          dueDate: new Date(Date.now() + Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-          createdDate: new Date(Date.now() - Math.random() * 60 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-          companyName: company.name,
-        })),
-      )
-      .slice(0, 10) // Limit to 10 most recent
+    return companies.flatMap((company, cIdx) => 
+      Array.from({ length: 2 }, (_, i) => ({
+        id: `${cIdx}-${i}`,
+        invoiceNumber: `INV-2024-${cIdx}${i}`,
+        clientName: "Enterprise Client",
+        amount: 2500 + (cIdx * 500),
+        status: statuses[Math.floor(Math.random() * statuses.length)],
+        dueDate: "2024-06-30",
+        companyName: company.name,
+      }))
+    ).slice(0, 8)
   }
 
   const revenueData = generateRevenueData()
   const companyRevenue = generateCompanyRevenue()
   const invoices = generateInvoices()
 
-  const getStatusBadge = (status: string) => {
-    const variants = {
-      paid: "default",
-      pending: "secondary",
-      overdue: "destructive",
-      draft: "outline",
-    } as const
-
-    return <Badge variant={variants[status as keyof typeof variants] || "outline"}>{status.toUpperCase()}</Badge>
-  }
-
   const formatCurrencyWithSettings = (amount: number) => {
     return formatCurrency(amount, settings.defaultCurrency)
   }
 
+  const getStatusBadge = (status: string) => {
+    const variants = {
+      paid: "bg-emerald-50 text-emerald-700 border-emerald-200/60 rounded-full",
+      pending: "bg-amber-50 text-amber-700 border-amber-200/60 rounded-full",
+      overdue: "bg-ruby/10 text-ruby border-ruby/20 rounded-full",
+      draft: "bg-slate-100 text-slate-700 border-slate-200 rounded-full",
+    } as const
+    const variant = variants[status as keyof typeof variants] || variants.draft
+    return (
+      <Badge variant="outline" className={cn("font-semibold text-[10px] px-2.5 py-0.5 capitalize tracking-wide rounded-full", variant)}>
+        {status}
+      </Badge>
+    )
+  }
+
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-6">
+    <div className="max-w-7xl mx-auto space-y-10 py-8 px-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 border-b border-hairline pb-10">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Payment Dashboard</h1>
-          <p className="text-muted-foreground">Track your revenue, invoices, and business performance</p>
+          <h1 className="text-display-md font-bold tracking-tight text-ink">Overview</h1>
+          <p className="text-body-md text-ink-mute font-medium mt-1">Unified financial management across your entities.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-4">
           <Select value={selectedCompany} onValueChange={setSelectedCompany}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Select company" />
+            <SelectTrigger className="w-48 h-10 bg-canvas border-hairline text-caption font-bold shadow-sm rounded-md">
+              <SelectValue placeholder="All Entities" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Companies</SelectItem>
-              {companies
-                .filter((c) => c.isActive)
-                .map((company) => (
-                  <SelectItem key={company.id} value={company.id}>
-                    {company.name}
-                  </SelectItem>
-                ))}
+              <SelectItem value="all">All Entities</SelectItem>
+              {companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="1month">1 Month</SelectItem>
-              <SelectItem value="3months">3 Months</SelectItem>
-              <SelectItem value="6months">6 Months</SelectItem>
-              <SelectItem value="1year">1 Year</SelectItem>
-            </SelectContent>
-          </Select>
+          <Button className="h-10 px-6 font-bold shadow-sm flex gap-2">
+            <Plus className="h-4 w-4" />
+            New Invoice
+          </Button>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <Card className="bg-canvas border-hairline rounded-lg shadow-sm group hover:border-primary/40 transition-colors">
+          <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0">
+            <CardTitle className="text-micro-cap text-ink-mute group-hover:text-primary transition-colors">Total Revenue</CardTitle>
+            <div className="p-2 bg-canvas-soft rounded-lg group-hover:bg-primary/5 transition-colors">
+              <DollarSign className="h-4 w-4 text-primary" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrencyWithSettings(stats.totalRevenue)}</div>
-            <p className="text-xs text-muted-foreground flex items-center gap-1">
-              <ArrowUpRight className="h-3 w-3 text-primary" />+{stats.revenueGrowth}% from last month
+            <div className="text-display-sm font-bold text-ink text-tabular tabular-nums">{formatCurrencyWithSettings(stats.totalRevenue)}</div>
+            <div className="flex items-center gap-1.5 mt-3">
+              <span className="text-caption font-bold text-emerald-600 flex items-center bg-emerald-50 px-2 py-0.5 rounded-full">
+                <ArrowUpRight className="h-3 w-3 mr-0.5" />
+                {stats.revenueGrowth}%
+              </span>
+              <span className="text-caption text-ink-mute font-semibold uppercase tracking-wider">vs last month</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-canvas border-hairline rounded-lg shadow-sm group hover:border-primary/40 transition-colors">
+          <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0">
+            <CardTitle className="text-micro-cap text-ink-mute group-hover:text-primary transition-colors">Net Invoiced</CardTitle>
+            <div className="p-2 bg-canvas-soft rounded-lg group-hover:bg-primary/5 transition-colors">
+              <TrendingUp className="h-4 w-4 text-primary" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-display-sm font-bold text-ink text-tabular tabular-nums">{formatCurrencyWithSettings(stats.monthlyRevenue)}</div>
+            <p className="text-caption text-ink-mute font-bold mt-3 uppercase tracking-widest flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+              Projected +15% growth
             </p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+        <Card className="bg-canvas border-hairline rounded-lg shadow-sm group hover:border-primary/40 transition-colors">
+          <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0">
+            <CardTitle className="text-micro-cap text-ink-mute group-hover:text-primary transition-colors">Outstanding</CardTitle>
+            <div className="p-2 bg-canvas-soft rounded-lg group-hover:bg-primary/5 transition-colors">
+              <FileText className="h-4 w-4 text-primary" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrencyWithSettings(stats.monthlyRevenue)}</div>
-            <p className="text-xs text-muted-foreground">Current month earnings</p>
+            <div className="text-display-sm font-bold text-ink text-tabular tabular-nums">{stats.pendingInvoices + stats.overdueInvoices}</div>
+            <div className="flex gap-4 mt-3">
+              <div className="text-micro-cap font-black text-amber-600 uppercase tracking-widest">{stats.pendingInvoices} Pending</div>
+              <div className="text-micro-cap font-black text-ruby uppercase tracking-widest">{stats.overdueInvoices} Overdue</div>
+            </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Invoices</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
+        <Card className="bg-canvas border-hairline rounded-lg shadow-sm group hover:border-primary/40 transition-colors">
+          <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0">
+            <CardTitle className="text-micro-cap text-ink-mute group-hover:text-primary transition-colors">Active Clients</CardTitle>
+            <div className="p-2 bg-canvas-soft rounded-lg group-hover:bg-primary/5 transition-colors">
+              <Users className="h-4 w-4 text-primary" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalInvoices}</div>
-            <p className="text-xs text-muted-foreground">
-              {stats.paidInvoices} paid, {stats.pendingInvoices} pending
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Clients</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalClients}</div>
-            <p className="text-xs text-muted-foreground">Across all companies</p>
+            <div className="text-display-sm font-bold text-ink text-tabular tabular-nums">{stats.totalClients}</div>
+            <p className="text-caption text-ink-mute font-bold mt-3 uppercase tracking-widest">Global enterprise base</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Revenue Trend</CardTitle>
-            <CardDescription>Monthly revenue over the last 6 months</CardDescription>
+      {/* Main Analysis */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+        <Card className="lg:col-span-2 bg-canvas border-hairline rounded-lg shadow-sm overflow-hidden">
+          <CardHeader className="border-b border-hairline py-6 px-8 flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-heading-lg font-bold text-ink">Growth Trend</CardTitle>
+              <CardDescription className="text-caption font-semibold text-ink-mute">Monthly net revenue performance</CardDescription>
+            </div>
+            <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+              <SelectTrigger className="w-36 h-9 bg-canvas-soft border-hairline text-micro-cap font-black uppercase tracking-widest shadow-none">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1month">Last 30 days</SelectItem>
+                <SelectItem value="3months">Last 3 months</SelectItem>
+                <SelectItem value="6months">Last 6 months</SelectItem>
+                <SelectItem value="1year">Last year</SelectItem>
+              </SelectContent>
+            </Select>
           </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+          <CardContent className="p-8">
+            <ResponsiveContainer width="100%" height={320}>
               <LineChart data={revenueData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip formatter={(value) => formatCurrencyWithSettings(Number(value))} />
-                <Line type="monotone" dataKey="revenue" stroke="#059669" strokeWidth={2} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748d', fontWeight: 600 }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748d', fontWeight: 600 }} tickFormatter={(v) => `$${v/1000}k`} />
+                <Tooltip 
+                  contentStyle={{ borderRadius: '8px', border: '1px solid #e3e8ee', boxShadow: '0 4px 12px rgba(0,55,112,0.08)', padding: '12px' }}
+                  itemStyle={{ fontSize: '13px', fontWeight: 700 }}
+                  labelStyle={{ fontSize: '11px', color: '#64748d', marginBottom: '4px', fontWeight: 700, textTransform: 'uppercase' }}
+                  formatter={(v) => formatCurrencyWithSettings(Number(v))} 
+                />
+                <Line type="monotone" dataKey="revenue" stroke="#533afd" strokeWidth={3} dot={{ r: 4, fill: '#fff', strokeWidth: 2, stroke: '#533afd' }} activeDot={{ r: 6, strokeWidth: 0, fill: '#533afd' }} />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Revenue by Company</CardTitle>
-            <CardDescription>Distribution of revenue across companies</CardDescription>
+        <Card className="bg-canvas border-hairline rounded-lg shadow-sm overflow-hidden">
+          <CardHeader className="border-b border-hairline py-6 px-8 text-center">
+            <CardTitle className="text-heading-lg font-bold text-ink">Entity Share</CardTitle>
+            <CardDescription className="text-caption font-semibold text-ink-mute">Revenue distribution by organization</CardDescription>
           </CardHeader>
-          <CardContent>
-            {companyRevenue.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={companyRevenue}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="revenue"
-                    label={({ name, value, index }) => {
-                      const total = companyRevenue.reduce((sum, entry) => sum + entry.revenue, 0)
-                      const percent = total > 0 ? (value as number) / total : 0
-                      return `${name}: ${(percent * 100).toFixed(0)}%`
-                    }}
-                  >
-                    {companyRevenue.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => formatCurrencyWithSettings(Number(value))} />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-                No company data available
-              </div>
-            )}
+          <CardContent className="p-8 flex flex-col items-center">
+            <ResponsiveContainer width="100%" height={240}>
+              <PieChart>
+                <Pie data={companyRevenue} cx="50%" cy="50%" innerRadius={65} outerRadius={85} paddingAngle={8} dataKey="revenue" stroke="none">
+                  {companyRevenue.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                </Pie>
+                <Tooltip formatter={(v) => formatCurrencyWithSettings(Number(v))} />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="w-full space-y-3 mt-6 px-4">
+              {companyRevenue.map((item) => (
+                <div key={item.name} className="flex items-center justify-between text-caption">
+                  <div className="flex items-center gap-3">
+                    <div className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: item.color }} />
+                    <span className="font-semibold text-ink-secondary">{item.name}</span>
+                  </div>
+                  <span className="font-bold text-ink">{((item.revenue / stats.totalRevenue) * 100).toFixed(0)}%</span>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Invoice Management */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Invoices</CardTitle>
-          <CardDescription>Manage and track your invoices</CardDescription>
+      {/* Transactions */}
+      <Card className="bg-canvas border-hairline rounded-lg shadow-sm overflow-hidden">
+        <CardHeader className="py-8 px-10 border-b border-hairline flex flex-row items-center justify-between bg-canvas-soft/30">
+          <div>
+            <CardTitle className="text-heading-lg font-bold text-ink">Recent Transactions</CardTitle>
+            <CardDescription className="text-caption font-semibold text-ink-mute">Real-time ledger of entity activities</CardDescription>
+          </div>
+          <div className="flex items-center gap-6">
+            <Tabs defaultValue="all" className="h-10">
+              <TabsList className="bg-white p-1 border border-hairline h-10 shadow-sm rounded-md">
+                <TabsTrigger value="all" className="text-micro-cap font-black uppercase tracking-widest px-4 h-8 data-[state=active]:bg-canvas-soft">All</TabsTrigger>
+                <TabsTrigger value="paid" className="text-micro-cap font-black uppercase tracking-widest px-4 h-8 data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-700">Paid</TabsTrigger>
+                <TabsTrigger value="pending" className="text-micro-cap font-black uppercase tracking-widest px-4 h-8 data-[state=active]:bg-amber-50 data-[state=active]:text-amber-700">Pending</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            <Button variant="outline" size="sm" className="h-10 px-5 font-bold shadow-sm rounded-md border-hairline">
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
+          </div>
         </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="all" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="all">All ({invoices.length})</TabsTrigger>
-              <TabsTrigger value="paid">Paid ({stats.paidInvoices})</TabsTrigger>
-              <TabsTrigger value="pending">Pending ({stats.pendingInvoices})</TabsTrigger>
-              <TabsTrigger value="overdue">Overdue ({stats.overdueInvoices})</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="all" className="mt-6">
-              {invoices.length > 0 ? (
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Invoice #</TableHead>
-                        <TableHead>Client</TableHead>
-                        <TableHead>Company</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Due Date</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {invoices.map((invoice) => (
-                        <TableRow key={invoice.id}>
-                          <TableCell className="font-medium">{invoice.invoiceNumber}</TableCell>
-                          <TableCell>{invoice.clientName}</TableCell>
-                          <TableCell className="text-sm text-muted-foreground">{invoice.companyName}</TableCell>
-                          <TableCell>{formatCurrencyWithSettings(invoice.amount)}</TableCell>
-                          <TableCell>{getStatusBadge(invoice.status)}</TableCell>
-                          <TableCell>{new Date(invoice.dueDate).toLocaleDateString()}</TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button variant="ghost" size="sm">
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="sm">
-                                <Send className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="sm">
-                                <Download className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="sm">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-medium mb-2">No Invoices Found</h3>
-                  <p className="text-muted-foreground mb-4">Create your first invoice to see it here</p>
-                  <Button onClick={() => (window.location.href = "/")}>
-                    <FileText className="h-4 w-4 mr-2" />
-                    Create Invoice
-                  </Button>
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="paid">
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">Showing paid invoices only</p>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="pending">
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">Showing pending invoices only</p>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="overdue">
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">Showing overdue invoices only</p>
-              </div>
-            </TabsContent>
-          </Tabs>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader className="bg-white border-b border-hairline">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="text-micro-cap font-black uppercase tracking-[0.2em] text-ink-mute h-12 px-10">Invoice</TableHead>
+                <TableHead className="text-micro-cap font-black uppercase tracking-[0.2em] text-ink-mute h-12">Client</TableHead>
+                <TableHead className="text-micro-cap font-black uppercase tracking-[0.2em] text-ink-mute h-12">Organization</TableHead>
+                <TableHead className="text-micro-cap font-black uppercase tracking-[0.2em] text-ink-mute h-12">Amount</TableHead>
+                <TableHead className="text-micro-cap font-black uppercase tracking-[0.2em] text-ink-mute h-12">Status</TableHead>
+                <TableHead className="text-micro-cap font-black uppercase tracking-[0.2em] text-ink-mute h-12 text-right px-10">Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {invoices.map((invoice) => (
+                <TableRow key={invoice.id} className="group hover:bg-canvas-soft/40 transition-colors border-hairline even:bg-canvas-soft/10">
+                  <TableCell className="py-6 px-10">
+                    <span className="font-bold text-body-md text-ink">{invoice.invoiceNumber}</span>
+                    <p className="text-caption text-ink-mute font-semibold mt-1">Due {new Date(invoice.dueDate).toLocaleDateString()}</p>
+                  </TableCell>
+                  <TableCell className="py-6 text-body-md font-semibold text-ink-secondary">{invoice.clientName}</TableCell>
+                  <TableCell className="py-6">
+                    <span className="text-micro-cap font-bold text-ink-mute-2 bg-canvas-soft px-2.5 py-1 rounded border border-hairline shadow-xs">
+                      {invoice.companyName}
+                    </span>
+                  </TableCell>
+                  <TableCell className="py-6 text-body-md font-bold text-ink tabular-nums">{formatCurrencyWithSettings(invoice.amount)}</TableCell>
+                  <TableCell className="py-6">{getStatusBadge(invoice.status)}</TableCell>
+                  <TableCell className="py-6 text-right px-10">
+                    <div className="flex justify-end gap-3">
+                      <Button variant="ghost" size="icon" className="h-9 w-9 text-ink-mute hover:text-primary hover:bg-canvas rounded-xl shadow-xs border border-transparent hover:border-hairline transition-all">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-9 w-9 text-ink-mute hover:text-primary hover:bg-canvas rounded-xl shadow-xs border border-transparent hover:border-hairline transition-all">
+                        <Send className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
+        <div className="py-8 bg-canvas-soft/30 flex justify-center border-t border-hairline">
+          <Button variant="link" className="text-caption font-bold text-ink-mute hover:text-primary transition-colors no-underline">
+            View Enterprise Ledger Data
+          </Button>
+        </div>
       </Card>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Quick Actions</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Button className="w-full justify-start" onClick={() => (window.location.href = "/")}>
-              <FileText className="h-4 w-4 mr-2" />
-              Create New Invoice
-            </Button>
-            <Button variant="outline" className="w-full justify-start bg-transparent">
-              <Send className="h-4 w-4 mr-2" />
-              Send Payment Reminder
-            </Button>
-            <Button variant="outline" className="w-full justify-start bg-transparent">
-              <Download className="h-4 w-4 mr-2" />
-              Export Reports
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Payment Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-sm">Paid Invoices</span>
-                <Badge variant="default">{stats.paidInvoices}</Badge>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm">Pending Payments</span>
-                <Badge variant="secondary">{stats.pendingInvoices}</Badge>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm">Overdue Invoices</span>
-                <Badge variant="destructive">{stats.overdueInvoices}</Badge>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">This Month</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-sm">Revenue</span>
-                <span className="font-medium">{formatCurrencyWithSettings(stats.monthlyRevenue)}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm">Invoices Sent</span>
-                <span className="font-medium">{Math.floor(stats.totalInvoices * 0.2)}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm">Growth</span>
-                <span className="font-medium text-primary">+{stats.revenueGrowth}%</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Footer */}
+      <footer className="pt-16 pb-10 border-t border-hairline flex flex-col md:flex-row justify-between items-center gap-8">
+        <div className="flex items-center gap-3">
+          <div className="w-6 h-6 bg-canvas-soft rounded flex items-center justify-center border border-hairline shadow-xs">
+            <span className="text-ink-mute text-[10px] font-black italic">P</span>
+          </div>
+          <span className="text-micro-cap font-black text-ink-mute uppercase tracking-[0.2em]">ManagePay Enterprise</span>
+        </div>
+        <div className="flex gap-10 text-micro-cap font-bold text-ink-mute uppercase tracking-widest">
+          <Link href="#" className="hover:text-primary transition-colors">API Docs</Link>
+          <Link href="#" className="hover:text-primary transition-colors">Security</Link>
+          <Link href="#" className="hover:text-primary transition-colors">System Status</Link>
+        </div>
+      </footer>
     </div>
   )
 }

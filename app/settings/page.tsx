@@ -105,203 +105,159 @@ export default function SettingsPage() {
 
   const router = useRouter();
 
-const handleSignOut = async () => {
-  try {
-    await signOutUser();
-    router.push("/");
-  } catch (error) {
-    console.error("Error signing out:", error);
-  }
-};
-
-
-  
+  const handleSignOut = async () => {
+    try {
+      await signOutUser();
+      router.push("/");
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
 
   if (loading) {
     return (
-      <div className="p-6 max-w-5xl mx-auto space-y-8">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold">Settings</h1>
-          <p className="text-gray-500">Loading...</p>
-        </div>
+      <div className="p-6 max-w-5xl mx-auto space-y-8 animate-pulse">
+        <div className="h-8 w-48 bg-slate-200 rounded mx-auto mb-2" />
+        <div className="h-4 w-64 bg-slate-100 rounded mx-auto" />
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="p-6 max-w-5xl mx-auto space-y-8">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold">Settings</h1>
-          <p className="text-gray-500">Please sign in to access settings</p>
-        </div>
+      <div className="p-12 text-center space-y-4">
+        <h1 className="text-2xl font-bold text-slate-900">Access Denied</h1>
+        <p className="text-slate-500">Please sign in to manage your account settings.</p>
+        <Button onClick={() => router.push("/")}>Return to Login</Button>
       </div>
     );
   }
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-8">
+    <div className="max-w-5xl mx-auto space-y-10 py-10 px-6">
       {/* Page Header */}
-      <div className="text-center space-y-1">
-        <h1 className="text-3xl font-bold">Settings</h1>
-        <p className="text-gray-500">Manage your account and application preferences</p>
+      <div className="space-y-1">
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Settings</h1>
+        <p className="text-sm font-medium text-slate-500">Manage your profile, billing, and system preferences.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Account */}
-        <Card className="rounded-2xl shadow">
-          <CardContent className="p-6 space-y-6">
-            <div className="flex items-center gap-4">
-              <div className="relative">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+        {/* Navigation Tabs Placeholder - Modern SaaS style sidebar settings */}
+        <div className="lg:col-span-1 space-y-1">
+          <Button variant="ghost" className="w-full justify-start font-bold bg-slate-100 text-primary">General</Button>
+          <Button variant="ghost" className="w-full justify-start font-semibold text-slate-500 hover:text-slate-900">Billing</Button>
+          <Button variant="ghost" className="w-full justify-start font-semibold text-slate-500 hover:text-slate-900">Security</Button>
+          <Button variant="ghost" className="w-full justify-start font-semibold text-slate-500 hover:text-slate-900">API Keys</Button>
+          <Button variant="ghost" className="w-full justify-start font-semibold text-slate-500 hover:text-slate-900">Members</Button>
+        </div>
+
+        <div className="lg:col-span-2 space-y-8">
+          {/* Profile Section */}
+          <section className="space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-6">
+              <div>
+                <h2 className="text-xl font-bold text-slate-900">Public Profile</h2>
+                <p className="text-xs text-slate-500 font-medium">This information will be visible across your enterprise.</p>
+              </div>
+              <div className="flex gap-3">
+                {isEditing ? (
+                  <>
+                    <Button onClick={handleSave} disabled={saving} size="sm" className="font-bold">{saving ? "Saving..." : "Save"}</Button>
+                    <Button variant="outline" onClick={() => setIsEditing(false)} size="sm" className="font-bold">Cancel</Button>
+                  </>
+                ) : (
+                  <Button variant="outline" onClick={() => setIsEditing(true)} size="sm" className="font-bold">Edit Profile</Button>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div className="flex items-center gap-6">
                 <Avatar 
                   src={isEditing ? tempPhotoURL : (tempPhotoURL || "/hmq.jpeg")} 
                   alt="Profile" 
-                  className="w-12 h-12"
+                  className="w-20 h-20 ring-4 ring-white shadow-sm border border-slate-200"
                 />
                 {isEditing && (
-                  <label htmlFor="photo-upload" className="absolute -bottom-1 -right-1 bg-blue-500 text-white p-1 rounded-full text-xs cursor-pointer">
-                    ✎
-                    <input
-                      id="photo-upload"
-                      type="file"
-                      accept="image/*"
-                      onChange={handlePhotoChange}
-                      className="hidden"
-                    />
+                  <label htmlFor="photo-upload" className="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 transition-colors">
+                    Change Photo
+                    <input id="photo-upload" type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
                   </label>
                 )}
               </div>
-              <div>
-                <h2 className="text-xl font-semibold">Account</h2>
-                <p className="text-sm text-gray-500">Manage your personal information</p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Full Name</Label>
+                  {isEditing ? (
+                    <Input value={name} onChange={(e) => setName(e.target.value)} className="h-10 border-slate-200 font-semibold" />
+                  ) : (
+                    <p className="text-sm font-bold text-slate-700 h-10 flex items-center">{getUserDisplayName(user)}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Email Address</Label>
+                  {isEditing ? (
+                    <Input value={email} onChange={(e) => setEmail(e.target.value)} className="h-10 border-slate-200 font-semibold" />
+                  ) : (
+                    <p className="text-sm font-bold text-slate-700 h-10 flex items-center">{user.email}</p>
+                  )}
+                </div>
               </div>
             </div>
+          </section>
 
-            <div className="space-y-4">
-              {isEditing ? (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Name</Label>
-                    <Input
-                      id="name"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="Enter your name"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Enter your email"
-                    />
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="flex justify-between items-center">
-                    <span className="font-medium">Name</span>
-                    <span className="text-gray-600">{getUserDisplayName(user)}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="font-medium">Email</span>
-                    <span className="text-gray-600">{user.email}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="font-medium">User ID</span>
-                    <span className="text-gray-600 text-xs">{user.id.slice(0, 8)}...</span>
-                  </div>
-                </>
-              )}
-            </div>
+          {/* Preferences Section */}
+          <section className="space-y-6 pt-8 border-t border-slate-200">
+             <div>
+                <h2 className="text-xl font-bold text-slate-900">Application Preferences</h2>
+                <p className="text-xs text-slate-500 font-medium">Customize your dashboard experience.</p>
+              </div>
 
-            <div className="space-y-2">
-              {isEditing ? (
-                <div className="flex gap-2">
-                  <Button 
-                    onClick={handleSave} 
-                    className="flex-1"
-                    disabled={saving}
-                  >
-                    {saving ? "Saving..." : "Save Changes"}
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => {
-                      setIsEditing(false);
-                      setName(getUserDisplayName(user));
-                      setEmail(user.email || "");
-                      const savedPhoto = localStorage.getItem(`profilePhoto_${user.id}`);
-                      setTempPhotoURL(savedPhoto || getUserPhotoUrl(user) || "/hmq.jpeg");
-                    }}
-                    className="flex-1"
-                    disabled={saving}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              ) : (
-                <Button 
-                  variant="outline" 
-                  onClick={() => setIsEditing(true)}
-                  className="w-full"
-                >
-                  Edit Account
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card className="border-slate-200 bg-white pro-shadow">
+                  <CardContent className="p-5 flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <p className="text-sm font-bold text-slate-700">Dark Mode</p>
+                      <p className="text-[11px] text-slate-400 font-medium">Toggle between light and dark UI.</p>
+                    </div>
+                    <Switch
+                      checked={isDark}
+                      onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
+                    />
+                  </CardContent>
+                </Card>
+
+                <Card className="border-slate-200 bg-white pro-shadow">
+                  <CardContent className="p-5 flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <p className="text-sm font-bold text-slate-700">Email Alerts</p>
+                      <p className="text-[11px] text-slate-400 font-medium">Receive real-time payment notifications.</p>
+                    </div>
+                    <Switch checked={emailReceipts} onCheckedChange={setEmailReceipts} />
+                  </CardContent>
+                </Card>
+              </div>
+          </section>
+
+          {/* Danger Zone */}
+          <section className="pt-10">
+            <div className="p-6 bg-rose-50/50 border border-rose-100 rounded-xl space-y-4">
+              <div className="space-y-1">
+                <h3 className="text-sm font-bold text-rose-700 uppercase tracking-wider">Security Actions</h3>
+                <p className="text-xs text-rose-600/70 font-medium">Protect your account and managed sessions.</p>
+              </div>
+              <div className="flex gap-4">
+                <Button variant="outline" onClick={handleSignOut} className="bg-white text-rose-600 border-rose-200 hover:bg-rose-50 font-bold text-xs h-9">
+                  Sign Out of All Sessions
                 </Button>
-              )}
-              
-              <Button 
-                variant="outline" 
-                onClick={handleSignOut}
-                className="w-full text-red-600 border-red-200 hover:bg-red-50"
-              >
-                Sign Out
-              </Button>
+                <Button variant="ghost" className="text-rose-400 hover:text-rose-600 font-bold text-xs h-9">
+                  Reset API Keys
+                </Button>
+              </div>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Appearance */}
-        <Card className="rounded-2xl shadow">
-          <CardContent className="p-6 space-y-4">
-            <h2 className="text-xl font-semibold">Appearance</h2>
-            <p className="text-sm text-gray-500">Customize the look and feel of the app.</p>
-            <div className="flex items-center justify-between">
-              <span>Dark Mode</span>
-              <Switch
-                checked={isDark}
-                onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Notifications */}
-        <Card className="rounded-2xl shadow">
-          <CardContent className="p-6 space-y-4">
-            <h2 className="text-xl font-semibold">Notifications</h2>
-            <p className="text-sm text-gray-500">Control how you receive alerts.</p>
-            <div className="flex items-center justify-between">
-              <span>Email Receipts</span>
-              <Switch checked={emailReceipts} onCheckedChange={setEmailReceipts} />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* General */}
-        <Card className="rounded-2xl shadow">
-          <CardContent className="p-6 space-y-4">
-            <h2 className="text-xl font-semibold">General</h2>
-            <p className="text-sm text-gray-500">Application details and support.</p>
-            <Button className="w-full">Help & Support</Button>
-            <Button variant="outline" className="w-full">
-              About App
-            </Button>
-          </CardContent>
-        </Card>
+          </section>
+        </div>
       </div>
     </div>
   );

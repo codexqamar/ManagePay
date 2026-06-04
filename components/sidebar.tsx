@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { FileText, CreditCard, BarChart3, Settings, Building2, Plus, Menu, X, LogOut, User, ChevronLeft, ChevronRight } from "lucide-react"
+import { FileText, CreditCard, BarChart3, Settings, Building2, Plus, Menu, X, LogOut, User, ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/hooks/use-auth"
 
 const navigation = [
-  { name: "Invoice Generator", icon: FileText, href: "/", current: false },
+  { name: "Invoice Generator", icon: FileText, href: "/invoice-generator", current: false },
   { name: "Payment Terminal", icon: CreditCard, href: "/terminal", current: false },
   { name: "Dashboard", icon: BarChart3, href: "/dashboard", current: false },
   { name: "Companies", icon: Building2, href: "/companies", current: false },
@@ -75,7 +75,7 @@ export function Sidebar() {
       {/* Sidebar */}
       <div
         className={cn(
-          "fixed inset-y-0 left-0 z-40 bg-sidebar border-r border-sidebar-border transform transition-all duration-300 ease-in-out md:relative md:translate-x-0",
+          "fixed inset-y-0 left-0 z-40 bg-canvas border-r border-hairline transform transition-all duration-300 ease-in-out md:relative md:translate-x-0",
           isCollapsed ? "w-16" : "w-64",
           isOpen ? "translate-x-0" : "-translate-x-full",
         )}
@@ -83,65 +83,78 @@ export function Sidebar() {
         <div className="flex flex-col h-full">
           {/* Header */}
           <div className={cn(
-            "border-b border-sidebar-border",
+            "border-b border-hairline",
             isCollapsed ? "p-2" : "p-6"
           )}>
             <div className={cn(
-              "flex items-center",
+              "flex items-center mb-6",
               isCollapsed ? "justify-center" : "justify-between"
             )}>
               {!isCollapsed && (
-                <div>
-                  <h2 className="text-xl font-bold text-sidebar-foreground">PayTerminal</h2>
-                  <p className="text-sm text-muted-foreground mt-1">Multi-Company Payments</p>
+                <div className="flex items-center gap-2.5 font-bold text-lg tracking-tight text-ink">
+                  <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                    <span className="text-white text-base font-black italic">P</span>
+                  </div>
+                  ManagePay
                 </div>
               )}
               <Button
                 variant="ghost"
                 size="sm"
-                className={cn("hidden md:flex h-8 w-8 p-0", isCollapsed && "mx-auto")}
+                className={cn("hidden md:flex h-8 w-8 p-0 text-ink-mute hover:text-primary hover:bg-canvas-soft", isCollapsed && "mx-auto")}
                 onClick={() => setIsCollapsed(!isCollapsed)}
-                title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                title={isCollapsed ? "Expand" : "Collapse"}
               >
                 {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
               </Button>
             </div>
 
-            {/* User Info */}
-            {user && !isCollapsed && (
-              <div className="mt-4 flex items-center gap-2 p-2 bg-sidebar-accent rounded-md">
-                <User className="h-3 w-3 text-sidebar-accent-foreground" />
-                <span className="text-xs text-sidebar-accent-foreground truncate">
-                  {displayName}
-                </span>
+            {/* Entity Switcher */}
+            {!isCollapsed && (
+              <div className="space-y-1.5">
+                <p className="text-[10px] font-bold text-ink-mute uppercase tracking-widest px-2">Organization</p>
+                <Button variant="outline" size="sm" className="w-full justify-between h-9 px-2 bg-canvas-soft border-hairline hover:bg-canvas rounded-md group">
+                  <div className="flex items-center gap-2 overflow-hidden">
+                    <div className="w-4 h-4 rounded-full bg-slate-200 shrink-0" />
+                    <span className="text-xs truncate font-semibold text-ink-secondary">Straton Ally</span>
+                  </div>
+                  <MoreHorizontal className="h-3 w-3 text-ink-mute group-hover:text-primary transition-colors" />
+                </Button>
               </div>
             )}
           </div>
 
           {/* Navigation */}
           <nav className={cn(
-            "flex-1 space-y-2",
+            "flex-1 space-y-1",
             isCollapsed ? "p-2" : "p-4"
           )}>
             {updatedNavigation.map((item) => (
               <Link key={item.name} href={item.href} onClick={() => setIsOpen(false)}>
                 <Button
-                  variant={item.current ? "default" : "ghost"}
+                  variant="ghost"
                   className={cn(
-                    "w-full gap-3",
-                    isCollapsed ? "justify-center px-2" : "justify-start",
+                    "w-full gap-3 relative group transition-colors",
+                    isCollapsed ? "justify-center px-2" : "justify-start px-3",
                     item.current
-                      ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                      ? "bg-canvas-soft text-primary font-bold"
+                      : "text-ink-mute hover:bg-canvas-soft hover:text-ink",
                   )}
                   title={item.name}
                 >
-                  <item.icon className="h-4 w-4 shrink-0" />
-                  {!isCollapsed && <span className="truncate">{item.name}</span>}
+                  {item.current && !isCollapsed && (
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-primary rounded-r-full" />
+                  )}
+                  <item.icon className={cn("h-4 w-4 shrink-0 transition-colors", item.current ? "text-primary" : "group-hover:text-primary")} />
+                  {!isCollapsed && <span className="truncate text-[13px]">{item.name}</span>}
                 </Button>
               </Link>
             ))}
           </nav>
+
+
+
+
 
           {/* Quick Actions */}
           {!isCollapsed && (

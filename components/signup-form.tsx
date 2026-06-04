@@ -3,7 +3,6 @@
 import { useState, useCallback } from "react"
 import { signOutUser, signUpWithEmail } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
@@ -42,7 +41,6 @@ export function SignupForm({ onSignup, onSwitchToLogin }: SignupFormProps) {
     hasSpecialChar: false
   })
 
-  // Email validation - useCallback to prevent recreating function
   const validateEmail = useCallback((email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!email) {
@@ -57,7 +55,6 @@ export function SignupForm({ onSignup, onSwitchToLogin }: SignupFormProps) {
     return true
   }, [])
 
-  // Password validation - useCallback to prevent recreating function
   const validatePassword = useCallback((password: string) => {
     const errors = {
       minLength: password.length >= 8,
@@ -70,19 +67,12 @@ export function SignupForm({ onSignup, onSwitchToLogin }: SignupFormProps) {
     return Object.values(errors).every(Boolean)
   }, [])
 
-  // Handle input changes
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
-    
-    // Validate only after input change
-    if (field === 'email') {
-      validateEmail(value)
-    } else if (field === 'password') {
-      validatePassword(value)
-    }
+    if (field === 'email') validateEmail(value)
+    else if (field === 'password') validatePassword(value)
   }
 
-  // Check if form is valid
   const isFormValid = () => {
     return formData.name && 
            formData.email && 
@@ -98,205 +88,151 @@ export function SignupForm({ onSignup, onSwitchToLogin }: SignupFormProps) {
     setIsLoading(true)
 
     try {
-      // Final validation
-      if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
-        toast({ title: "Error", description: "Please fill all fields" })
-        return
-      }
+      if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) throw new Error("Please fill all fields")
+      if (emailError) throw new Error("Please enter a valid email address")
+      if (!Object.values(passwordErrors).every(Boolean)) throw new Error("Please fix password requirements")
+      if (formData.password !== formData.confirmPassword) throw new Error("Passwords don't match")
 
-      if (emailError) {
-        toast({ title: "Error", description: "Please enter a valid email address" })
-        return
-      }
-
-      if (!Object.values(passwordErrors).every(Boolean)) {
-        toast({ title: "Error", description: "Please fix password requirements" })
-        return
-      }
-
-      if (formData.password !== formData.confirmPassword) {
-        toast({ title: "Error", description: "Passwords don't match" })
-        return
-      }
-
-      console.log("Starting signup process...")
-
-      const user = await signUpWithEmail(formData.email, formData.password, formData.name)
-      console.log("User created:", user?.email)
-
-      // Sign out user immediately after signup
+      await signUpWithEmail(formData.email, formData.password, formData.name)
       await signOutUser()
-      console.log("User signed out")
 
       toast({
         title: "Account Created Successfully! ✅",
-        description: "Verification email sent to " + formData.email + ". Please check your inbox (and spam folder)."
+        description: "Check your email for the verification link."
       })
-
-      // Switch to login page
       onSwitchToLogin()
       
     } catch (error: any) {
-      console.error("Signup error:", error)
-      
-      let errorMessage = "Signup failed"
-      if (error.message?.toLowerCase().includes("already registered")) {
-        errorMessage = "Email already in use"
-      } else if (error.message?.toLowerCase().includes("password")) {
-        errorMessage = error.message
-      } else if (error.code === 'auth/invalid-email') {
-        errorMessage = "Invalid email address"
-      } else if (error.code === 'auth/weak-password') {
-        errorMessage = "Password is too weak"
-      } else if (error.code === 'auth/network-request-failed') {
-        errorMessage = "Network error. Please check your connection"
-      }
-
-      toast({
-        title: "Signup Failed",
-        description: errorMessage
-      })
+      toast({ title: "Signup Failed", description: error.message || "Something went wrong" })
     } finally {
       setIsLoading(false)
     }
   }
 
   const ValidationItem = ({ valid, text }: { valid: boolean; text: string }) => (
-    <div className={`flex items-center gap-2 text-xs ${valid ? 'text-green-600' : 'text-gray-500'}`}>
-      {valid ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+    <div className={`flex items-center gap-2 text-[11px] font-bold ${valid ? 'text-emerald-600' : 'text-ink-mute'}`}>
+      {valid ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3 opacity-30" />}
       {text}
     </div>
   )
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader className="text-center">
-        <CardTitle className="text-2xl">Sign Up</CardTitle>
-        <CardDescription>Create your account to get started</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Name Field */}
-          <div className="space-y-2">
-            <Label htmlFor="name">Full Name</Label>
-            <Input
-              id="name"
-              type="text"
-              placeholder="Enter your full name"
-              value={formData.name}
-              onChange={(e) => handleInputChange('name', e.target.value)}
-              required
-            />
-          </div>
-
-          {/* Email Field */}
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="your@email.com"
-              value={formData.email}
-              onChange={(e) => handleInputChange('email', e.target.value)}
-              required
-              className={emailError ? "border-red-500" : ""}
-            />
-            {emailError && (
-              <div className="flex items-center gap-2 text-red-600 text-xs">
-                <AlertCircle className="w-3 h-3" />
-                {emailError}
-              </div>
-            )}
-          </div>
-
-          {/* Password Field */}
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <div className="relative">
-              <Input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                placeholder="At least 8 characters"
-                value={formData.password}
-                onChange={(e) => handleInputChange('password', e.target.value)}
-                required
-                className="pr-10"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-              >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-
-            {/* Password Requirements */}
-            {formData.password && (
-              <div className="space-y-1 p-3 bg-gray-50 rounded-md">
-                <div className="text-xs font-medium text-gray-700 mb-2">Password must contain:</div>
-                <div className="grid grid-cols-1 gap-1">
-                  <ValidationItem valid={passwordErrors.minLength} text="At least 8 characters" />
-                  <ValidationItem valid={passwordErrors.hasUpperCase} text="One uppercase letter" />
-                  <ValidationItem valid={passwordErrors.hasLowerCase} text="One lowercase letter" />
-                  <ValidationItem valid={passwordErrors.hasNumber} text="One number" />
-                  <ValidationItem valid={passwordErrors.hasSpecialChar} text="One special character" />
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Confirm Password Field */}
-          <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirm Password</Label>
-            <div className="relative">
-              <Input
-                id="confirmPassword"
-                type={showConfirmPassword ? "text" : "password"}
-                placeholder="Confirm your password"
-                value={formData.confirmPassword}
-                onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                required
-                className="pr-10"
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-              >
-                {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-            {formData.confirmPassword && formData.password !== formData.confirmPassword && (
-              <div className="flex items-center gap-2 text-red-600 text-xs">
-                <AlertCircle className="w-3 h-3" />
-                Passwords do not match
-              </div>
-            )}
-          </div>
-          
-          <div className="text-xs text-muted-foreground p-2 bg-yellow-50 rounded-md">
-            📧 After signup, check your email inbox AND spam folder for verification link.
-          </div>
-          
-          <Button 
-            type="submit" 
-            className="w-full" 
-            disabled={isLoading || !isFormValid()}
-          >
-            {isLoading ? "Creating Account..." : "Sign Up"}
-          </Button>
-        </form>
-        
-        <div className="mt-4 text-center">
-          <button 
-            onClick={onSwitchToLogin}
-            className="w-full py-2 text-blue-600 hover:text-blue-800 hover:bg-gray-100 rounded-md transition-colors"
-          >
-            Already have an account? Login
-          </button>
+    <div className="w-full space-y-8">
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="space-y-2">
+          <Label htmlFor="name" className="text-body-md font-medium text-ink">Full Name</Label>
+          <Input
+            id="name"
+            type="text"
+            placeholder="Jane Doe"
+            value={formData.name}
+            onChange={(e) => handleInputChange('name', e.target.value)}
+            required
+            className="h-11 rounded-sm border-hairline-input focus:ring-primary"
+          />
         </div>
-      </CardContent>
-    </Card>
+
+        <div className="space-y-2">
+          <Label htmlFor="email" className="text-body-md font-medium text-ink">Email Address</Label>
+          <Input
+            id="email"
+            type="email"
+            placeholder="jane@company.com"
+            value={formData.email}
+            onChange={(e) => handleInputChange('email', e.target.value)}
+            required
+            className={cn("h-11 rounded-sm border-hairline-input focus:ring-primary", emailError && "border-ruby")}
+          />
+          {emailError && (
+            <div className="flex items-center gap-2 text-ruby text-xs font-medium">
+              <AlertCircle className="w-3 h-3" />
+              {emailError}
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="password" title="Password" className="text-body-md font-medium text-ink">Security Password</Label>
+          <div className="relative">
+            <Input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              placeholder="••••••••"
+              value={formData.password}
+              onChange={(e) => handleInputChange('password', e.target.value)}
+              required
+              className="h-11 pr-10 rounded-sm border-hairline-input focus:ring-primary"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-mute hover:text-ink transition-colors"
+            >
+              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+
+          {formData.password && (
+            <div className="space-y-2 p-4 bg-canvas-soft rounded-md border border-hairline mt-2">
+              <div className="text-[11px] font-black uppercase tracking-widest text-ink-mute opacity-70 mb-1">Security Requirements</div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-4">
+                <ValidationItem valid={passwordErrors.minLength} text="8+ characters" />
+                <ValidationItem valid={passwordErrors.hasUpperCase} text="Uppercase" />
+                <ValidationItem valid={passwordErrors.hasLowerCase} text="Lowercase" />
+                <ValidationItem valid={passwordErrors.hasNumber} text="Numbers" />
+                <ValidationItem valid={passwordErrors.hasSpecialChar} text="Special Symbols" />
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="confirmPassword" title="Confirm Password" className="text-body-md font-medium text-ink">Confirm Password</Label>
+          <div className="relative">
+            <Input
+              id="confirmPassword"
+              type={showConfirmPassword ? "text" : "password"}
+              placeholder="••••••••"
+              value={formData.confirmPassword}
+              onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+              required
+              className="h-11 pr-10 rounded-sm border-hairline-input focus:ring-primary"
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-mute hover:text-ink transition-colors"
+            >
+              {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+        </div>
+        
+        <div className="text-xs text-ink-mute p-3 bg-canvas-soft rounded-lg border border-hairline/60 font-medium">
+          Note: We will send a verification link to your inbox.
+        </div>
+        
+        <Button 
+          type="submit" 
+          className="w-full h-11 text-base font-bold shadow-sm" 
+          disabled={isLoading || !isFormValid()}
+        >
+          {isLoading ? "Provisioning..." : "Create Account"}
+        </Button>
+      </form>
+      
+      <div className="pt-4 border-t border-hairline">
+        <button 
+          onClick={onSwitchToLogin}
+          className="w-full py-2 text-ink-secondary text-sm font-bold hover:text-ink transition-colors"
+        >
+          Already an entity member? <span className="text-primary hover:text-primary-deep transition-colors">Sign in</span>
+        </button>
+      </div>
+    </div>
   )
+}
+
+function cn(...inputs: any[]) {
+  return inputs.filter(Boolean).join(" ")
 }
