@@ -1,0 +1,1 @@
+ManagePay Static Assets
