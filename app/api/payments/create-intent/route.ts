@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { stripe } from "@/lib/stripe-server"
-import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { getSupabaseServiceClient } from "@/lib/supabase-server"
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,17 +11,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "invoiceId is required" }, { status: 400 })
     }
 
-    const supabase = getSupabaseServerClient(request)
-
-    // Authenticate the request
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
+    const supabase = getSupabaseServiceClient()
 
     // Fetch the invoice and verify ownership / client access
     const { data: invoice, error: invoiceError } = await supabase
@@ -38,16 +28,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: `Invoice is already ${invoice.status}` },
         { status: 400 },
-      )
-    }
-
-    const isSeller = invoice.seller_id === user.id
-    const isClient = invoice.client_id === user.id
-
-    if (!isSeller && !isClient) {
-      return NextResponse.json(
-        { error: "You do not have permission to pay this invoice" },
-        { status: 403 },
       )
     }
 

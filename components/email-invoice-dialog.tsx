@@ -68,19 +68,23 @@ export function EmailInvoiceDialog({
     setIsSending(true)
 
     try {
-      // Simulate email sending
-      await new Promise((resolve) => setTimeout(resolve, 2000))
-
-      const emailData = {
+      const response = await fetch("/api/send-invoice-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
         to: email,
         subject,
         message,
         invoiceId,
         paymentUrl: includePaymentLink ? paymentUrl : null,
         sendCopy,
-      }
+        }),
+      })
+      const data = await response.json()
 
-      console.log("Sending email:", emailData)
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to send invoice email")
+      }
 
       toast({
         title: "Email Sent Successfully!",
@@ -91,7 +95,7 @@ export function EmailInvoiceDialog({
     } catch (error) {
       toast({
         title: "Failed to Send Email",
-        description: "There was an error sending the invoice email",
+        description: error instanceof Error ? error.message : "There was an error sending the invoice email",
         variant: "destructive",
       })
     } finally {

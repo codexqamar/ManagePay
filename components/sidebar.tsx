@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { FileText, CreditCard, BarChart3, Settings, Building2, Plus, Menu, X, LogOut, ChevronLeft, ChevronRight } from "lucide-react"
+import { FileText, CreditCard, BarChart3, Settings, Building2, Plus, Menu, X, LogOut, ChevronLeft, ChevronRight, Users } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -14,6 +14,7 @@ const navigation = [
   { name: "Payment Terminal", icon: CreditCard, href: "/terminal", current: false },
   { name: "Dashboard", icon: BarChart3, href: "/dashboard", current: false },
   { name: "Companies", icon: Building2, href: "/companies", current: false },
+  { name: "Clients", icon: Users, href: "/clients", current: false },
   { name: "Settings", icon: Settings, href: "/settings", current: false },
 ]
 

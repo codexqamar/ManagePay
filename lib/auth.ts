@@ -30,6 +30,62 @@ export function isUserEmailVerified(user: AppUser | null) {
   return Boolean(user?.email_confirmed_at || user?.confirmed_at)
 }
 
+export function getAuthErrorMessage(error: unknown, fallback = "Something went wrong. Please try again.") {
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === "string"
+        ? error
+        : fallback
+  const code =
+    typeof error === "object" && error && "code" in error
+      ? String((error as { code?: unknown }).code ?? "")
+      : ""
+  const status =
+    typeof error === "object" && error && "status" in error
+      ? Number((error as { status?: unknown }).status)
+      : undefined
+  const normalized = `${code} ${message}`.toLowerCase()
+
+  if (normalized.includes("invalid login credentials") || normalized.includes("invalid_credentials")) {
+    return "The email or password is incorrect."
+  }
+
+  if (normalized.includes("email not confirmed") || normalized.includes("email_not_confirmed")) {
+    return "Please verify your email before logging in."
+  }
+
+  if (
+    normalized.includes("user already registered") ||
+    normalized.includes("already registered") ||
+    normalized.includes("user_already_exists")
+  ) {
+    return "An account with this email already exists. Try signing in instead."
+  }
+
+  if (normalized.includes("password should be") || normalized.includes("weak_password")) {
+    return "Please choose a stronger password that meets the requirements."
+  }
+
+  if (normalized.includes("signup disabled") || normalized.includes("signup_disabled")) {
+    return "New account registration is currently disabled."
+  }
+
+  if (
+    status === 429 ||
+    normalized.includes("rate limit") ||
+    normalized.includes("over_email_send_rate_limit")
+  ) {
+    return "Too many attempts. Please wait a moment and try again."
+  }
+
+  if (normalized.includes("network") || normalized.includes("fetch")) {
+    return "Unable to reach the authentication service. Check your connection and try again."
+  }
+
+  return message || fallback
+}
+
 export async function getCurrentUser() {
   const supabase = getSupabaseBrowserClient()
   const { data, error } = await supabase.auth.getUser()

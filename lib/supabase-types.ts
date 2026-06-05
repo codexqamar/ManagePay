@@ -55,12 +55,14 @@ export type InvoiceStatus = "pending" | "paid" | "failed" | "canceled"
 
 export interface Invoice {
   id: string
+  invoice_number: string
   seller_id: string
   client_id: string | null
   client_email: string
   amount_in_cents: number
   currency: string
   description: string | null
+  due_date: string | null
   status: InvoiceStatus
   stripe_payment_intent_id: string | null
   metadata: Record<string, any> | null
@@ -70,3 +72,20 @@ export interface Invoice {
 
 export type InsertInvoice = Omit<Invoice, "id" | "created_at" | "updated_at">
 export type UpdateInvoice = Partial<Omit<Invoice, "id" | "seller_id" | "created_at" | "updated_at">>
+
+export interface Client {
+  id: string
+  user_id: string
+  name: string
+  email: string
+  company_name: string | null
+  phone: string | null
+  address: string | null
+  notes: string | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export type InsertClient = Omit<Client, "id" | "created_at" | "updated_at">
+export type UpdateClient = Partial<Omit<Client, "id" | "user_id" | "created_at" | "updated_at">>

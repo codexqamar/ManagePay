@@ -362,3 +362,97 @@ export async function setInvoicePaymentIntentId(
 ): Promise<Invoice | null> {
   return updateInvoice(id, { stripe_payment_intent_id: paymentIntentId })
 }
+
+/* ============================================================
+   CLIENTS
+   ============================================================ */
+
+import type { Client, InsertClient, UpdateClient } from "@/lib/supabase-types"
+
+export async function getClientsByUser(userId: string): Promise<Client[]> {
+  const supabase = getSupabaseBrowserClient()
+  const { data, error } = await supabase
+    .from("clients")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+
+  if (error) {
+    console.error("getClientsByUser error:", error.message)
+    return []
+  }
+  return (data ?? []) as Client[]
+}
+
+export async function getActiveClientsByUser(userId: string): Promise<Client[]> {
+  const supabase = getSupabaseBrowserClient()
+  const { data, error } = await supabase
+    .from("clients")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("is_active", true)
+    .order("name", { ascending: true })
+
+  if (error) {
+    console.error("getActiveClientsByUser error:", error.message)
+    return []
+  }
+  return (data ?? []) as Client[]
+}
+
+export async function getClientById(id: string): Promise<Client | null> {
+  const supabase = getSupabaseBrowserClient()
+  const { data, error } = await supabase
+    .from("clients")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle()
+
+  if (error) {
+    console.error("getClientById error:", error.message)
+    return null
+  }
+  return data as Client | null
+}
+
+export async function createClientRecord(client: InsertClient): Promise<Client | null> {
+  const supabase = getSupabaseBrowserClient()
+  const { data, error } = await supabase
+    .from("clients")
+    .insert(client)
+    .select()
+    .single()
+
+  if (error) {
+    console.error("createClientRecord error:", error.message)
+    return null
+  }
+  return data as Client
+}
+
+export async function updateClientRecord(id: string, values: UpdateClient): Promise<Client | null> {
+  const supabase = getSupabaseBrowserClient()
+  const { data, error } = await supabase
+    .from("clients")
+    .update(values)
+    .eq("id", id)
+    .select()
+    .single()
+
+  if (error) {
+    console.error("updateClientRecord error:", error.message)
+    return null
+  }
+  return data as Client
+}
+
+export async function deleteClientRecord(id: string): Promise<boolean> {
+  const supabase = getSupabaseBrowserClient()
+  const { error } = await supabase.from("clients").delete().eq("id", id)
+
+  if (error) {
+    console.error("deleteClientRecord error:", error.message)
+    return false
+  }
+  return true
+}

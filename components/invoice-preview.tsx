@@ -1,15 +1,18 @@
 // components/invoice-preview.tsx
 import { Card, CardContent } from "@/components/ui/card"
-import { formatCurrency, CURRENCIES } from "@/lib/currencies"
+import { formatCurrency } from "@/lib/currencies"
 import { format } from "date-fns"
 
 interface InvoicePreviewProps {
   invoiceData: {
     company: any
     client: {
+      id?: string
       name: string
       email: string
       address: string
+      phone?: string
+      companyName?: string
     }
     invoiceNumber: string
     dueDate: string
@@ -31,7 +34,7 @@ interface InvoicePreviewProps {
 
 export function InvoicePreview({ invoiceData }: InvoicePreviewProps) {
   const { company, client, invoiceNumber, dueDate, currency, items, subtotal, tax, total, notes } = invoiceData
-  const currencyInfo = CURRENCIES.find(c => c.code === currency) || CURRENCIES[0]
+  const taxRateLabel = invoiceData.taxRate > 0 ? `${invoiceData.taxRate}%` : "0%"
 
   return (
     <Card className="w-full bg-white border-hairline rounded-lg shadow-none" id="invoice-preview">
@@ -39,7 +42,11 @@ export function InvoicePreview({ invoiceData }: InvoicePreviewProps) {
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-start mb-6 sm:mb-8">
           <div className="mb-4 sm:mb-0">
-            <h1 className="text-xl sm:text-2xl font-bold text-ink">INVOICE</h1>
+            {company?.logoUrl ? (
+              <img src={company.logoUrl} alt={company.name} className="h-10 w-auto object-contain mb-3" />
+            ) : (
+              <h1 className="text-xl sm:text-2xl font-bold text-ink">INVOICE</h1>
+            )}
             <p className="text-ink-mute text-sm">#{invoiceNumber}</p>
           </div>
           {company && (
@@ -106,7 +113,7 @@ export function InvoicePreview({ invoiceData }: InvoicePreviewProps) {
           </div>
           {tax > 0 && (
             <div className="flex justify-between py-2">
-              <span className="font-semibold">Tax ({invoiceData.taxRate * 100}%):</span>
+              <span className="font-semibold">Tax ({taxRateLabel}):</span>
               <span>{formatCurrency(tax, currency)}</span>
             </div>
           )}

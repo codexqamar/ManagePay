@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import { isUserEmailVerified, signInWithEmail, signOutUser } from "@/lib/auth"
+import { getAuthErrorMessage, isUserEmailVerified, signInWithEmail, signOutUser } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -26,6 +26,7 @@ export function LoginForm({ onLogin, onSwitchToSignup, onSwitchToForgotPassword 
   const [showPassword, setShowPassword] = useState(false)
   const [emailError, setEmailError] = useState("")
   const [passwordError, setPasswordError] = useState("")
+  const [authError, setAuthError] = useState("")
 
   const validateEmail = useCallback((email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -56,6 +57,7 @@ export function LoginForm({ onLogin, onSwitchToSignup, onSwitchToForgotPassword 
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
+    setAuthError("")
     if (field === 'email') validateEmail(value)
     else if (field === 'password') validatePassword(value)
   }
@@ -77,9 +79,12 @@ export function LoginForm({ onLogin, onSwitchToSignup, onSwitchToForgotPassword 
 
       if (!isUserEmailVerified(user)) {
         await signOutUser()
+        const message = "Please verify your email before logging in."
+        setAuthError(message)
         toast({
           title: "Email Not Verified",
-          description: "Please verify your email before logging in."
+          description: message,
+          variant: "destructive"
         })
         return
       }
@@ -88,8 +93,10 @@ export function LoginForm({ onLogin, onSwitchToSignup, onSwitchToForgotPassword 
       onLogin()
       router.push("/dashboard")
       
-    } catch (error: any) {
-      toast({ title: "Login Failed", description: error.message || "Invalid credentials" })
+    } catch (error) {
+      const message = getAuthErrorMessage(error, "Unable to sign in. Please try again.")
+      setAuthError(message)
+      toast({ title: "Login Failed", description: message, variant: "destructive" })
     } finally {
       setIsLoading(false)
     }
@@ -98,6 +105,13 @@ export function LoginForm({ onLogin, onSwitchToSignup, onSwitchToForgotPassword 
   return (
     <div className="w-full space-y-6">
       <form onSubmit={handleSubmit} className="space-y-5">
+        {authError && (
+          <div className="flex items-start gap-2 rounded-md border border-ruby/40 bg-ruby/10 p-3 text-ruby text-sm font-medium">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{authError}</span>
+          </div>
+        )}
+
         <div className="space-y-2">
           <Label htmlFor="email" className="text-body-md font-medium text-ink">Email Address</Label>
           <Input

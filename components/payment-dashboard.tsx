@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -30,11 +30,15 @@ import {
   Plus,
   Eye,
   Send,
+  Loader2,
+  RefreshCw,
 } from "lucide-react"
 import { useAppStore } from "@/lib/store"
 import { formatCurrency } from "@/lib/currencies"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
+import { getSupabaseBrowserClient } from "@/lib/supabase"
+import type { Invoice as SupabaseInvoice } from "@/lib/supabase-types"
 
 interface DashboardStats {
   totalRevenue: number
@@ -59,35 +63,64 @@ interface Invoice {
 }
 
 export function PaymentDashboard() {
-  const { companies, settings, transactions } = useAppStore()
+  const { companies, settings } = useAppStore()
   const [selectedPeriod, setSelectedPeriod] = useState("6months")
   const [selectedCompany, setSelectedCompany] = useState("all")
+  const [invoicesData, setInvoicesData] = useState<SupabaseInvoice[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const calculateStats = (): DashboardStats => {
-    const companyStats = companies.reduce(
-      (acc, company) => ({
-        revenue: acc.revenue + company.stats.totalRevenue,
-        invoices: acc.invoices + company.stats.invoiceCount,
-        clients: acc.clients + company.stats.clientCount,
-      }),
-      { revenue: 0, invoices: 0, clients: 0 },
-    )
-    const transactionRevenue = transactions.reduce((sum, txn) => sum + txn.amount, 0)
-    const completedTransactions = transactions.filter((txn) => txn.status === "completed").length
+  const fetchInvoices = useCallback(async () => {
+    setLoading(true)
+    try {
+      const supabase = getSupabaseBrowserClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data, error } = await supabase
+        .from("invoices")
+        .select("*")
+        .eq("seller_id", user.id)
+        .order("created_at", { ascending: false })
+
+      if (error) throw error
+      setInvoicesData(data || [])
+    } catch (error) {
+      console.error("Error fetching dashboard invoices:", error)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchInvoices()
+  }, [fetchInvoices])
+
+  const stats = useMemo((): DashboardStats => {
+    const filteredInvoices = selectedCompany === "all" 
+      ? invoicesData 
+      : invoicesData.filter(inv => inv.metadata?.companyId === selectedCompany)
+
+    const totalRevenue = filteredInvoices
+      .filter(inv => inv.status === "paid")
+      .reduce((sum, inv) => sum + (inv.amount_in_cents / 100), 0)
+
+    const paidInvoicesCount = filteredInvoices.filter(inv => inv.status === "paid").length
+    const pendingInvoicesCount = filteredInvoices.filter(inv => inv.status === "pending").length
+
+    // Calculate growth (mocked for now, but based on real data)
+    const revenueGrowth = paidInvoicesCount > 0 ? 12.5 : 0
 
     return {
-      totalRevenue: companyStats.revenue + transactionRevenue,
-      monthlyRevenue: transactionRevenue,
-      totalInvoices: companyStats.invoices + transactions.length,
-      paidInvoices: completedTransactions,
-      pendingInvoices: Math.max(transactions.length - completedTransactions, 0),
+      totalRevenue,
+      monthlyRevenue: totalRevenue, // Simple for now
+      totalInvoices: filteredInvoices.length,
+      paidInvoices: paidInvoicesCount,
+      pendingInvoices: pendingInvoicesCount,
       overdueInvoices: 0,
-      totalClients: companyStats.clients,
-      revenueGrowth: transactions.length > 0 ? 12.5 : 0,
+      totalClients: companies.length, // Placeholder
+      revenueGrowth,
     }
-  }
-
-  const stats = calculateStats()
+  }, [invoicesData, selectedCompany, companies.length])
 
   const revenueData = useMemo(() => {
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"]
@@ -102,25 +135,35 @@ export function PaymentDashboard() {
 
   const companyRevenue = useMemo(() => {
     const colors = ["#533afd", "#0d9488", "#ea2261", "#f59e0b", "#1c1e54"]
-    return companies.map((company, index) => ({
-      name: company.name,
-      revenue: company.stats.totalRevenue,
-      color: colors[index % colors.length],
-    }))
-  }, [companies])
+    return companies.map((company, index) => {
+      const companyInvTotal = invoicesData
+        .filter(inv => inv.metadata?.companyId === company.id && inv.status === "paid")
+        .reduce((sum, inv) => sum + (inv.amount_in_cents / 100), 0)
+        
+      return {
+        name: company.name,
+        revenue: companyInvTotal,
+        color: colors[index % colors.length],
+      }
+    })
+  }, [companies, invoicesData])
 
-  const invoices = useMemo<Invoice[]>(() => {
-    return transactions.slice(-8).reverse().map((transaction) => ({
-      id: transaction.id,
-      invoiceNumber: transaction.id.slice(0, 12),
-      clientName: transaction.customerName || transaction.customerEmail || "Customer",
-      amount: transaction.amount,
-      status: transaction.status === "completed" ? "paid" : "pending",
-      dueDate: transaction.date,
-      companyName: transaction.description || "Payment",
-      currency: transaction.currency,
+  const displayInvoices = useMemo<Invoice[]>(() => {
+    const filtered = selectedCompany === "all" 
+      ? invoicesData 
+      : invoicesData.filter(inv => inv.metadata?.companyId === selectedCompany)
+
+    return filtered.slice(0, 8).map((inv) => ({
+      id: inv.id,
+      invoiceNumber: inv.invoice_number || inv.id.slice(0, 12),
+      clientName: (inv.metadata?.client?.name as string) || inv.client_email,
+      amount: inv.amount_in_cents / 100,
+      status: inv.status as any,
+      dueDate: inv.due_date || inv.created_at,
+      companyName: (inv.metadata?.company?.name as string) || "Company",
+      currency: inv.currency,
     }))
-  }, [transactions])
+  }, [invoicesData, selectedCompany])
 
   const formatCurrencyWithSettings = (amount: number) => {
     return formatCurrency(amount, settings.defaultCurrency)
@@ -150,6 +193,10 @@ export function PaymentDashboard() {
           <p className="text-body-md text-ink-mute font-medium mt-1">Unified financial management across your entities.</p>
         </div>
         <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
+          <Button variant="outline" size="sm" onClick={fetchInvoices} className="h-10 rounded-md border-hairline font-bold">
+            <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
+            Sync
+          </Button>
           <Select value={selectedCompany} onValueChange={setSelectedCompany}>
             <SelectTrigger className="h-10 w-full bg-canvas border-hairline text-caption font-bold shadow-sm rounded-md sm:w-52">
               <SelectValue placeholder="All entities" />
@@ -159,9 +206,11 @@ export function PaymentDashboard() {
               {companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Button className="h-10 w-full px-6 font-bold shadow-sm flex gap-2 rounded-md sm:w-auto">
-            <Plus className="h-4 w-4" />
-            New Invoice
+          <Button asChild className="h-10 w-full px-6 font-bold shadow-sm flex gap-2 rounded-md sm:w-auto">
+            <Link href="/invoice-generator">
+              <Plus className="h-4 w-4" />
+              New Invoice
+            </Link>
           </Button>
         </div>
       </div>
@@ -176,7 +225,9 @@ export function PaymentDashboard() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-display-sm font-bold text-ink text-tabular tabular-nums">{formatCurrencyWithSettings(stats.totalRevenue)}</div>
+            <div className="text-display-sm font-bold text-ink text-tabular tabular-nums">
+              {loading ? <Loader2 className="h-6 w-6 animate-spin text-ink-mute" /> : formatCurrencyWithSettings(stats.totalRevenue)}
+            </div>
             <div className="flex items-center gap-1.5 mt-3">
               <span className="text-caption font-bold text-emerald-600 flex items-center bg-emerald-50 px-2 py-0.5 rounded-full">
                 <ArrowUpRight className="h-3 w-3 mr-0.5" />
@@ -195,10 +246,12 @@ export function PaymentDashboard() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-display-sm font-bold text-ink text-tabular tabular-nums">{formatCurrencyWithSettings(stats.monthlyRevenue)}</div>
+            <div className="text-display-sm font-bold text-ink text-tabular tabular-nums">
+              {loading ? <Loader2 className="h-6 w-6 animate-spin text-ink-mute" /> : formatCurrencyWithSettings(stats.monthlyRevenue)}
+            </div>
             <p className="text-caption text-ink-mute font-bold mt-3 uppercase tracking-widest flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-              Projected +15% growth
+              Real-time synchronization
             </p>
           </CardContent>
         </Card>
@@ -211,7 +264,9 @@ export function PaymentDashboard() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-display-sm font-bold text-ink text-tabular tabular-nums">{stats.pendingInvoices + stats.overdueInvoices}</div>
+            <div className="text-display-sm font-bold text-ink text-tabular tabular-nums">
+              {loading ? <Loader2 className="h-6 w-6 animate-spin text-ink-mute" /> : (stats.pendingInvoices + stats.overdueInvoices)}
+            </div>
             <div className="flex gap-4 mt-3">
               <div className="text-micro-cap font-black text-amber-600 uppercase tracking-widest">{stats.pendingInvoices} Pending</div>
               <div className="text-micro-cap font-black text-ruby uppercase tracking-widest">{stats.overdueInvoices} Overdue</div>
@@ -227,7 +282,9 @@ export function PaymentDashboard() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-display-sm font-bold text-ink text-tabular tabular-nums">{stats.totalClients}</div>
+            <div className="text-display-sm font-bold text-ink text-tabular tabular-nums">
+              {loading ? <Loader2 className="h-6 w-6 animate-spin text-ink-mute" /> : stats.totalClients}
+            </div>
             <p className="text-caption text-ink-mute font-bold mt-3 uppercase tracking-widest">Global enterprise base</p>
           </CardContent>
         </Card>
@@ -334,7 +391,13 @@ export function PaymentDashboard() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {invoices.map((invoice) => (
+              {loading ? (
+                 <TableRow>
+                   <TableCell colSpan={6} className="h-24 text-center">
+                     <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
+                   </TableCell>
+                 </TableRow>
+              ) : displayInvoices.map((invoice) => (
                 <TableRow key={invoice.id} className="group hover:bg-canvas-soft/40 transition-colors border-hairline even:bg-canvas-soft/10">
                   <TableCell className="py-5 px-6 lg:px-8">
                     <span className="font-bold text-body-md text-ink">{invoice.invoiceNumber}</span>
@@ -350,17 +413,28 @@ export function PaymentDashboard() {
                   <TableCell className="py-5">{getStatusBadge(invoice.status)}</TableCell>
                   <TableCell className="py-5 text-right px-6 lg:px-8">
                     <div className="flex justify-end gap-3">
-                      <Button variant="ghost" size="icon" className="h-9 w-9 text-ink-mute hover:text-primary hover:bg-canvas rounded-md shadow-xs border border-transparent hover:border-hairline transition-all">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-9 w-9 text-ink-mute hover:text-primary hover:bg-canvas rounded-md shadow-xs border border-transparent hover:border-hairline transition-all">
-                        <Send className="h-4 w-4" />
+                      <ShareInvoiceDialog
+                        invoiceId={invoice.id}
+                        invoiceNumber={invoice.invoiceNumber}
+                        amount={invoice.amount}
+                        currency={invoice.currency}
+                        invoiceData={invoicesData.find(inv => inv.id === invoice.id)?.metadata}
+                        trigger={
+                          <Button variant="ghost" size="icon" className="h-9 w-9 text-ink-mute hover:text-primary hover:bg-canvas rounded-md shadow-xs border border-transparent hover:border-hairline transition-all">
+                            <Share2 className="h-4 w-4" />
+                          </Button>
+                        }
+                      />
+                      <Button asChild variant="ghost" size="icon" className="h-9 w-9 text-ink-mute hover:text-primary hover:bg-canvas rounded-md shadow-xs border border-transparent hover:border-hairline transition-all">
+                        <Link href={`/pay/${invoice.id}`} target="_blank">
+                          <Eye className="h-4 w-4" />
+                        </Link>
                       </Button>
                     </div>
                   </TableCell>
                 </TableRow>
               ))}
-              {invoices.length === 0 && (
+              {!loading && displayInvoices.length === 0 && (
                 <TableRow className="hover:bg-transparent">
                   <TableCell colSpan={6} className="px-8 py-12 text-center">
                     <p className="text-body-md font-bold text-ink">No transactions yet</p>

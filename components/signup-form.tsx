@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useCallback } from "react"
-import { signOutUser, signUpWithEmail } from "@/lib/auth"
+import { getAuthErrorMessage, signOutUser, signUpWithEmail } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -33,6 +33,7 @@ export function SignupForm({ onSignup, onSwitchToLogin }: SignupFormProps) {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [emailError, setEmailError] = useState("")
+  const [authError, setAuthError] = useState("")
   const [passwordErrors, setPasswordErrors] = useState<ValidationRules>({
     minLength: false,
     hasUpperCase: false,
@@ -69,6 +70,7 @@ export function SignupForm({ onSignup, onSwitchToLogin }: SignupFormProps) {
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
+    setAuthError("")
     if (field === 'email') validateEmail(value)
     else if (field === 'password') validatePassword(value)
   }
@@ -102,8 +104,10 @@ export function SignupForm({ onSignup, onSwitchToLogin }: SignupFormProps) {
       })
       onSwitchToLogin()
       
-    } catch (error: any) {
-      toast({ title: "Signup Failed", description: error.message || "Something went wrong" })
+    } catch (error) {
+      const message = getAuthErrorMessage(error, "Unable to create account. Please try again.")
+      setAuthError(message)
+      toast({ title: "Signup Failed", description: message, variant: "destructive" })
     } finally {
       setIsLoading(false)
     }
@@ -119,6 +123,13 @@ export function SignupForm({ onSignup, onSwitchToLogin }: SignupFormProps) {
   return (
     <div className="w-full space-y-8">
       <form onSubmit={handleSubmit} className="space-y-5">
+        {authError && (
+          <div className="flex items-start gap-2 rounded-md border border-ruby/40 bg-ruby/10 p-3 text-ruby text-sm font-medium">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{authError}</span>
+          </div>
+        )}
+
         <div className="space-y-2">
           <Label htmlFor="name" className="text-body-md font-medium text-ink">Full name</Label>
           <Input
