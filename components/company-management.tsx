@@ -205,131 +205,169 @@ export function CompanyManagement() {
               Add Company
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden border-none shadow-2xl">
-            <div className="bg-primary px-6 py-8 text-white">
-              <DialogHeader>
-                <DialogTitle className="text-2xl font-bold text-white">
-                  {editingCompanyId ? "Edit Company" : "New Company"}
-                </DialogTitle>
-                <DialogDescription className="text-primary-bg-subdued-hover font-medium">
-                  {editingCompanyId ? "Update your business profile details" : "Create a professional profile for your business"}
-                </DialogDescription>
-              </DialogHeader>
-            </div>
+          <DialogContent className="sm:max-w-[640px] p-0 overflow-hidden border-none shadow-2xl rounded-2xl">
+            <DialogHeader className="p-6 border-b border-hairline">
+              <DialogTitle className="text-heading-lg text-ink">
+                {editingCompanyId ? "Edit Company Profile" : "Create New Company"}
+              </DialogTitle>
+              <DialogDescription className="text-body-md font-medium text-ink-mute">
+                {editingCompanyId 
+                  ? "Update your business details and branding settings." 
+                  : "Add a new business entity to manage invoices and payments."}
+              </DialogDescription>
+            </DialogHeader>
 
-            <div className="p-6 space-y-6 bg-canvas">
-              {/* Logo Upload Section */}
-              <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-hairline rounded-xl bg-canvas-soft hover:bg-white transition-colors group relative">
-                {formData.logoUrl ? (
-                  <div className="relative">
-                    <img src={formData.logoUrl} alt="Logo" className="h-24 w-24 object-contain rounded-lg" />
-                    <button 
-                      onClick={() => setFormData(prev => ({ ...prev, logoUrl: "" }))}
-                      className="absolute -top-2 -right-2 p-1 bg-ruby text-white rounded-full shadow-lg hover:scale-110 transition-transform"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <label className="flex flex-col items-center justify-center cursor-pointer w-full py-4">
-                    <div className="p-4 bg-primary/10 rounded-full mb-3 group-hover:scale-110 transition-transform">
-                      {isUploading ? <Loader2 className="h-6 w-6 text-primary animate-spin" /> : <Upload className="h-6 w-6 text-primary" />}
+            <div className="flex-1 overflow-y-auto p-6 space-y-8">
+              {/* Logo Section */}
+              <div className="space-y-4">
+                <Label className="text-micro-cap font-black uppercase tracking-widest text-ink-mute">Company Logo</Label>
+                <div className="flex items-center gap-6">
+                  <div className="relative group">
+                    <div className="h-24 w-24 rounded-2xl border-2 border-dashed border-hairline bg-canvas-soft flex items-center justify-center overflow-hidden">
+                      {formData.logoUrl ? (
+                        <img src={formData.logoUrl} alt="Logo" className="h-full w-full object-contain" />
+                      ) : (
+                        <Building2 className="h-8 w-8 text-ink-mute" />
+                      )}
+                      {isUploading && (
+                        <div className="absolute inset-0 bg-canvas/80 flex items-center justify-center">
+                          <Loader2 className="h-6 w-6 text-primary animate-spin" />
+                        </div>
+                      )}
                     </div>
-                    <span className="text-sm font-bold text-ink">Upload Company Logo</span>
-                    <span className="text-xs text-ink-mute mt-1">PNG, JPG up to 2MB</span>
-                    <input type="file" className="hidden" onChange={handleLogoUpload} accept="image/*" disabled={isUploading} />
-                  </label>
-                )}
+                    <label className="absolute -bottom-2 -right-2 h-8 w-8 bg-primary text-white rounded-full flex items-center justify-center cursor-pointer shadow-lg hover:bg-primary-deep transition-colors">
+                      <Upload className="h-4 w-4" />
+                      <input type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} disabled={isUploading} />
+                    </label>
+                    {formData.logoUrl && (
+                      <button 
+                        onClick={() => setFormData(prev => ({ ...prev, logoUrl: "" }))}
+                        className="absolute -top-2 -right-2 h-6 w-6 bg-ruby text-white rounded-full flex items-center justify-center shadow-md hover:bg-ruby/80"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-bold text-ink">Business Logo</p>
+                    <p className="text-xs text-ink-mute max-w-[240px]">
+                      Used on invoices and payment pages. Recommended size 400x400px, PNG or JPG.
+                    </p>
+                  </div>
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+              <Separator className="bg-hairline" />
+
+              {/* General Info */}
+              <div className="space-y-6">
+                <h3 className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                  <Building2 className="h-4 w-4" />
+                  General Information
+                </h3>
+                
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-black uppercase tracking-widest text-ink-mute">Legal Business Name</Label>
+                    <div className="relative">
+                      <Building2 className="absolute left-3 top-3 h-4 w-4 text-ink-mute" />
+                      <Input
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        placeholder="e.g. Acme Corp"
+                        className="pl-10 h-11 border-hairline focus:ring-primary"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-black uppercase tracking-widest text-ink-mute">Billing Email</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-3 h-4 w-4 text-ink-mute" />
+                      <Input
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        placeholder="billing@acme.com"
+                        className="pl-10 h-11 border-hairline"
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 <div className="space-y-2">
-                  <Label className="text-xs font-black uppercase tracking-widest text-ink-mute">Company Name</Label>
+                  <Label className="text-xs font-black uppercase tracking-widest text-ink-mute">Business Address</Label>
                   <div className="relative">
-                    <Building2 className="absolute left-3 top-3 h-4 w-4 text-ink-mute" />
-                    <Input
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      placeholder="e.g. Acme Corp"
-                      className="pl-10 h-11 border-hairline focus:ring-primary"
+                    <MapPin className="absolute left-3 top-3 h-4 w-4 text-ink-mute" />
+                    <Textarea
+                      value={formData.address}
+                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                      placeholder="Full registered address..."
+                      className="pl-10 min-h-[100px] border-hairline resize-none"
                     />
                   </div>
                 </div>
+
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-black uppercase tracking-widest text-ink-mute">Website</Label>
+                    <div className="relative">
+                      <Globe className="absolute left-3 top-3 h-4 w-4 text-ink-mute" />
+                      <Input
+                        value={formData.website}
+                        onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                        placeholder="https://acme.com"
+                        className="pl-10 h-11 border-hairline"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-black uppercase tracking-widest text-ink-mute">Tax / VAT ID</Label>
+                    <div className="relative">
+                      <Hash className="absolute left-3 top-3 h-4 w-4 text-ink-mute" />
+                      <Input
+                        value={formData.taxId}
+                        onChange={(e) => setFormData({ ...formData, taxId: e.target.value })}
+                        placeholder="GB123456789"
+                        className="pl-10 h-11 border-hairline"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <Separator className="bg-hairline" />
+
+              {/* Whitelabel Info */}
+              <div className="space-y-6">
+                <h3 className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                  <Globe className="h-4 w-4" />
+                  Branding & Whitelabel
+                </h3>
+
                 <div className="space-y-2">
-                  <Label className="text-xs font-black uppercase tracking-widest text-ink-mute">Billing Email</Label>
+                  <Label className="text-xs font-black uppercase tracking-widest text-ink-mute">Custom Payment Domain</Label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-ink-mute" />
+                    <LinkIcon className="absolute left-3 top-3 h-4 w-4 text-ink-mute" />
                     <Input
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      placeholder="billing@acme.com"
+                      value={formData.paymentBaseUrl}
+                      onChange={(e) => setFormData({ ...formData, paymentBaseUrl: e.target.value })}
+                      placeholder="pay.acme.com"
                       className="pl-10 h-11 border-hairline"
                     />
                   </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-xs font-black uppercase tracking-widest text-ink-mute">Business Address</Label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-3 h-4 w-4 text-ink-mute" />
-                  <Textarea
-                    value={formData.address}
-                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    placeholder="Full registered address..."
-                    className="pl-10 min-h-[100px] border-hairline resize-none"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label className="text-xs font-black uppercase tracking-widest text-ink-mute">Website</Label>
-                  <div className="relative">
-                    <Globe className="absolute left-3 top-3 h-4 w-4 text-ink-mute" />
-                    <Input
-                      value={formData.website}
-                      onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                      placeholder="https://acme.com"
-                      className="pl-10 h-11 border-hairline"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs font-black uppercase tracking-widest text-ink-mute">Tax / VAT ID</Label>
-                  <div className="relative">
-                    <Hash className="absolute left-3 top-3 h-4 w-4 text-ink-mute" />
-                    <Input
-                      value={formData.taxId}
-                      onChange={(e) => setFormData({ ...formData, taxId: e.target.value })}
-                      placeholder="GB123456789"
-                      className="pl-10 h-11 border-hairline"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-xs font-black uppercase tracking-widest text-ink-mute">Custom Payment Domain (Optional)</Label>
-                <div className="relative">
-                  <LinkIcon className="absolute left-3 top-3 h-4 w-4 text-ink-mute" />
-                  <Input
-                    value={formData.paymentBaseUrl}
-                    onChange={(e) => setFormData({ ...formData, paymentBaseUrl: e.target.value })}
-                    placeholder="pay.acme.com"
-                    className="pl-10 h-11 border-hairline"
-                  />
+                  <p className="text-[11px] text-ink-mute mt-1">
+                    Point a CNAME record from this domain to <span className="font-mono text-primary">pay.stratonally.com</span> for a trace-free experience.
+                  </p>
                 </div>
               </div>
             </div>
 
-            <div className="p-6 bg-canvas-soft border-t border-hairline flex justify-end gap-3">
+            <div className="p-6 bg-canvas-soft border-t border-hairline flex justify-end gap-3 rounded-b-2xl">
               <Button variant="outline" className="rounded-full px-6 border-hairline" onClick={closeDialog}>
                 Discard
               </Button>
               <Button className="rounded-full px-8 font-bold" onClick={handleSaveCompany}>
-                {editingCompanyId ? "Update Profile" : "Create Company"}
+                {editingCompanyId ? "Save Changes" : "Create Company"}
               </Button>
             </div>
           </DialogContent>
