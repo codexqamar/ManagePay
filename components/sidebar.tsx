@@ -2,11 +2,10 @@
 
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { FileText, CreditCard, BarChart3, Settings, Building2, Plus, Menu, X, LogOut, User, ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react"
+import { FileText, CreditCard, BarChart3, Settings, Building2, Plus, Menu, X, LogOut, ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/hooks/use-auth"
 
@@ -22,6 +21,7 @@ export function Sidebar() {
   const [isOpen, setIsOpen] = useState(false)
   const [isCollapsed, setIsCollapsed] = useState(false)
   const pathname = usePathname()
+  const router = useRouter()
   const { toast } = useToast()
   const { user, profile, logout } = useAuth()
 
@@ -48,6 +48,8 @@ export function Sidebar() {
   const handleLogout = async () => {
     try {
       await logout()
+      router.replace("/")
+      router.refresh()
       toast({
         title: "Logged out",
         description: "You have been logged out successfully"
@@ -66,7 +68,7 @@ export function Sidebar() {
       <Button
         variant="ghost"
         size="sm"
-        className="fixed top-4 left-4 z-50 md:hidden"
+        className="fixed top-4 left-4 z-50 md:hidden bg-canvas shadow-sm border border-hairline"
         onClick={() => setIsOpen(!isOpen)}
       >
         {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -75,7 +77,7 @@ export function Sidebar() {
       {/* Sidebar */}
       <div
         className={cn(
-          "fixed inset-y-0 left-0 z-40 bg-canvas border-r border-hairline transform transition-all duration-300 ease-in-out md:relative md:translate-x-0",
+          "fixed inset-y-0 left-0 z-40 bg-canvas/95 backdrop-blur border-r border-hairline transform transition-all duration-300 ease-in-out md:relative md:translate-x-0",
           isCollapsed ? "w-16" : "w-64",
           isOpen ? "translate-x-0" : "-translate-x-full",
         )}
@@ -92,7 +94,7 @@ export function Sidebar() {
             )}>
               {!isCollapsed && (
                 <div className="flex items-center gap-2.5 font-bold text-lg tracking-tight text-ink">
-                  <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                  <div className="w-8 h-8 bg-primary rounded-md flex items-center justify-center shadow-sm">
                     <span className="text-white text-base font-black italic">P</span>
                   </div>
                   ManagePay
@@ -109,19 +111,6 @@ export function Sidebar() {
               </Button>
             </div>
 
-            {/* Entity Switcher */}
-            {!isCollapsed && (
-              <div className="space-y-1.5">
-                <p className="text-[10px] font-bold text-ink-mute uppercase tracking-widest px-2">Organization</p>
-                <Button variant="outline" size="sm" className="w-full justify-between h-9 px-2 bg-canvas-soft border-hairline hover:bg-canvas rounded-md group">
-                  <div className="flex items-center gap-2 overflow-hidden">
-                    <div className="w-4 h-4 rounded-full bg-slate-200 shrink-0" />
-                    <span className="text-xs truncate font-semibold text-ink-secondary">Straton Ally</span>
-                  </div>
-                  <MoreHorizontal className="h-3 w-3 text-ink-mute group-hover:text-primary transition-colors" />
-                </Button>
-              </div>
-            )}
           </div>
 
           {/* Navigation */}
@@ -158,42 +147,52 @@ export function Sidebar() {
 
           {/* Quick Actions */}
           {!isCollapsed && (
-            <div className="p-4 border-t border-sidebar-border space-y-4">
-              <Card className="p-4 bg-sidebar-accent">
-                <div className="flex items-center gap-3 mb-3">
-                  <Plus className="h-4 w-4 text-sidebar-accent-foreground" />
-                  <span className="text-sm font-medium text-sidebar-accent-foreground">Quick Actions</span>
+            <div className="p-4 border-t border-hairline space-y-3">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between px-2">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-ink-mute">Quick Actions</span>
+                  <Plus className="h-3.5 w-3.5 text-primary" />
                 </div>
-                <div className="space-y-4">
+                <div className="space-y-1.5 rounded-lg border border-hairline bg-canvas-soft p-1.5">
                   <Link href="/" onClick={() => setIsOpen(false)}>
-                    <Button size="sm" className="w-full text-xs">
+                    <Button size="sm" className="h-9 w-full justify-start gap-2 rounded-md px-3 text-xs font-bold shadow-none">
+                      <FileText className="h-3.5 w-3.5" />
                       New Invoice
                     </Button>
                   </Link>
                   <Link href="/terminal" onClick={() => setIsOpen(false)}>
-                    <Button size="sm" variant="outline" className="w-full text-xs bg-transparent">
+                    <Button size="sm" variant="ghost" className="h-9 w-full justify-start gap-2 rounded-md px-3 text-xs font-bold text-ink-secondary hover:text-primary">
+                      <CreditCard className="h-3.5 w-3.5" />
                       Payment Link
                     </Button>
                   </Link>
                 </div>
-              </Card>
+              </div>
 
-              {/* Logout Button */}
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full justify-start gap-3 text-red-600 hover:text-red-700 hover:bg-red-50"
-                onClick={handleLogout}
-              >
-                <LogOut className="h-4 w-4" />
-                Logout
-              </Button>
+              <div className="flex items-center gap-2 rounded-lg border border-hairline bg-canvas p-2">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-canvas-soft text-[11px] font-black text-ink-mute">
+                  {displayName.charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-xs font-bold text-ink">{displayName}</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-ink-mute">Signed in</p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0 rounded-md text-ink-mute hover:bg-ruby/10 hover:text-ruby"
+                  onClick={handleLogout}
+                  title="Logout"
+                >
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           )}
 
           {/* Collapsed logout button */}
           {isCollapsed && (
-            <div className="p-2 border-t border-sidebar-border">
+            <div className="p-2 border-t border-hairline">
               <Button
                 variant="ghost"
                 size="sm"
@@ -210,7 +209,7 @@ export function Sidebar() {
 
       {/* Overlay for mobile */}
       {isOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden" onClick={() => setIsOpen(false)} />
+        <div className="fixed inset-0 bg-ink/40 z-30 md:hidden" onClick={() => setIsOpen(false)} />
       )}
     </>
   )

@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Share2, Copy, Mail, MessageSquare, QrCode, Download, LinkIcon } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { QRCodeCanvas } from "qrcode.react"
+import { formatCurrency } from "@/lib/currencies"
 
 interface ShareInvoiceDialogProps {
   invoiceId: string
@@ -63,9 +64,7 @@ export function ShareInvoiceDialog({ invoiceId, invoiceNumber, amount, trigger }
       return
     }
 
-    const smsText = `Invoice Payment Request\n\nInvoice #: ${invoiceNumber}\nAmount: $${amount.toFixed(
-      2
-    )}\n\nPlease pay securely here: ${paymentUrl}\n\nThank you!`
+    const smsText = `Invoice Payment Request\n\nInvoice #: ${invoiceNumber}\nAmount: ${formatCurrency(amount)}\n\nPlease pay securely here: ${paymentUrl}\n\nThank you!`
 
     const smsUrl = `sms:${phoneNumber}?body=${encodeURIComponent(smsText)}`
     window.location.href = smsUrl
@@ -104,7 +103,7 @@ export function ShareInvoiceDialog({ invoiceId, invoiceNumber, amount, trigger }
   const whatsappText = `Invoice Payment Request
 
 Invoice #: ${invoiceNumber}
-Amount: $${amount.toFixed(2)}
+Amount: ${formatCurrency(amount)}
 
 Please pay securely here: ${paymentUrl} 
 Thank you!`
@@ -141,15 +140,15 @@ Thank you!`
       return
     }
 
-    const subject = `Invoice ${invoiceNumber} - Payment Request of $${amount.toFixed(2)}`
+    const subject = `Invoice ${invoiceNumber} - Payment Request of ${formatCurrency(amount)}`
     const body = `
 Dear Client,
 
 Invoice Details:
 -------------------------------
 Invoice Number: ${invoiceNumber}
-Amount Due: $${amount.toFixed(2)}
-Due Date: ${new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()}
+Amount Due: ${formatCurrency(amount)}
+Due Date: ${new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString("en-GB")}
 -------------------------------
 
 Please make your payment using the following link:
@@ -164,8 +163,7 @@ If you have any questions, please don't hesitate to contact us.
 
 Thank you for your business!
 
-Sincerely,
-Your Company Name
+Sincerely
     `.trim()
 
     const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(
@@ -289,7 +287,7 @@ Your Company Name
                 type="email"
                 value={emailAddress}
                 onChange={(e) => setEmailAddress(e.target.value)}
-                placeholder="client@example.com"
+                placeholder="client@example.co.uk"
               />
 
               <Button onClick={sendEmail} className="w-full gap-2 py-2 h-11">
@@ -308,7 +306,7 @@ Your Company Name
                 type="tel"
                 value={whatsappNumber}
                 onChange={(e) => setWhatsappNumber(e.target.value)}
-                placeholder="+923001234567"
+                placeholder="+44 20 0000 0000"
               />
 
               <Button onClick={sendWhatsApp} className="w-full gap-2 py-2 h-11">

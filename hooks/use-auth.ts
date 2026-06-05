@@ -58,6 +58,7 @@ export function useAuth() {
 
   const logout = async () => {
     await signOutUser()
+    setUser(null)
     setProfile(null)
   }
 

@@ -62,12 +62,12 @@ export default function HomePage() {
       </div>
 
       {/* Content Container */}
-      <div className="relative z-10 flex-1 flex flex-col items-center justify-center p-8 md:p-12">
-        <div className="w-full max-w-[480px] space-y-12">
+      <div className="relative z-10 flex-1 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8">
+        <div className="w-full max-w-[460px] space-y-8">
           {/* Branding */}
-          <div className="text-center space-y-6">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-2xl shadow-md border border-hairline transition-transform hover:scale-105">
-              <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center shadow-indigo-100 shadow-lg">
+          <div className="text-center space-y-5">
+            <div className="inline-flex items-center justify-center w-14 h-14 bg-white rounded-lg shadow-sm border border-hairline transition-transform hover:scale-105">
+              <div className="w-10 h-10 bg-primary rounded-md flex items-center justify-center shadow-sm">
                 <span className="text-white text-2xl font-black italic">P</span>
               </div>
             </div>
@@ -78,18 +78,18 @@ export default function HomePage() {
           </div>
           
           {/* Form Surface */}
-          <div className="bg-white p-10 md:p-12 rounded-lg border border-hairline shadow-sm pro-shadow">
+          <div className="bg-white p-6 sm:p-8 rounded-lg border border-hairline shadow-sm pro-shadow">
             {children}
           </div>
 
           {/* Institutional Footer */}
-          <div className="text-center space-y-8 pt-4">
+          <div className="text-center space-y-5 pt-2">
             <p className="text-micro-cap font-bold text-ink-mute uppercase tracking-[0.2em] opacity-70">Securing payments for modern entities</p>
-            <div className="flex justify-center items-center gap-6 text-caption text-ink-mute-2 font-medium">
+            <div className="flex justify-center items-center gap-4 text-caption text-ink-mute-2 font-medium">
               <span>© 2026 ManagePay</span>
-              <span className="w-1 h-1 rounded-full bg-slate-300" />
+              <span className="w-1 h-1 rounded-full bg-hairline" />
               <button className="hover:text-primary transition-colors">Privacy</button>
-              <span className="w-1 h-1 rounded-full bg-slate-300" />
+              <span className="w-1 h-1 rounded-full bg-hairline" />
               <button className="hover:text-primary transition-colors">Terms</button>
             </div>
           </div>
@@ -146,7 +146,7 @@ export default function HomePage() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-canvas">
       <div className="animate-pulse flex flex-col items-center gap-6">
-        <div className="w-14 h-14 bg-primary rounded-full shadow-lg" />
+        <div className="w-14 h-14 bg-primary rounded-md shadow-sm" />
         <p className="text-ink font-bold tracking-tight">Authenticating Enterprise Session...</p>
       </div>
     </div>

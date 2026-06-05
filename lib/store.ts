@@ -89,10 +89,10 @@ export const useAppStore = create<AppState>()(
     (set, get) => ({
       companies: [],
       settings: {
-        defaultCurrency: "USD",
-        defaultTaxRate: 0.1, // 10%
+        defaultCurrency: "GBP",
+        defaultTaxRate: 0.2, // 20% UK VAT
         processingFeeRate: 0.029, // 2.9%
-        processingFeeFixed: 0.3, // $0.30
+        processingFeeFixed: 0.2,
       },
 
       // ✅ Company actions

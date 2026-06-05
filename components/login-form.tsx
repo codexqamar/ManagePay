@@ -103,7 +103,7 @@ export function LoginForm({ onLogin, onSwitchToSignup, onSwitchToForgotPassword 
           <Input
             id="email"
             type="email"
-            placeholder="name@company.com"
+            placeholder="name@company.co.uk"
             value={formData.email}
             onChange={(e) => handleInputChange('email', e.target.value)}
             required

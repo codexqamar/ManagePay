@@ -108,7 +108,7 @@ export function InvoicePayment({ invoiceId }: InvoicePaymentProps) {
 
   const company = companies.find((c) => c.id === invoice.seller_id) || {
     name: "Your Company",
-    email: invoice.client_email || "billing@company.com",
+    email: invoice.client_email || "",
     address: "",
   }
 
@@ -149,7 +149,7 @@ export function InvoicePayment({ invoiceId }: InvoicePaymentProps) {
                 <div>
                   <p className="text-sm">Invoice #{invoice.id.slice(0, 8)}</p>
                   <p className="text-sm text-muted-foreground">
-                    {new Date(invoice.created_at).toLocaleDateString()}
+                    {new Date(invoice.created_at).toLocaleDateString("en-GB")}
                   </p>
                 </div>
               </div>

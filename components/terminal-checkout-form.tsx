@@ -67,7 +67,7 @@ export function TerminalCheckoutForm({ onSuccess, onCancel, amount, currency }: 
               Processing...
             </>
           ) : (
-            `Pay ${new Intl.NumberFormat("en-US", { style: "currency", currency }).format(amount)}`
+            `Pay ${new Intl.NumberFormat("en-GB", { style: "currency", currency }).format(amount)}`
           )}
         </Button>
       </div>

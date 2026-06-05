@@ -407,32 +407,32 @@ export function PaymentTerminal() {
 
   if (paymentSuccess) {
     return (
-      <div className="max-w-2xl mx-auto p-6">
-        <Card className="text-center">
-          <CardContent className="pt-6">
-            <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-foreground mb-2">Payment Successful!</h2>
-            <p className="text-muted-foreground mb-4">
+      <div className="max-w-2xl mx-auto px-4 py-8 sm:px-6">
+        <Card className="text-center border-hairline rounded-lg bg-canvas shadow-sm">
+          <CardContent className="p-6">
+            <CheckCircle className="h-14 w-14 text-emerald-600 mx-auto mb-4" />
+            <h2 className="text-heading-lg font-bold text-ink mb-2">Payment Successful</h2>
+            <p className="text-body-md text-ink-mute mb-5">
               {formatCurrency(Number.parseFloat(amount), selectedCurrency)} has been processed successfully.
             </p>
             
-            <div className="bg-gray-100 p-4 rounded-lg text-left mb-6">
+            <div className="bg-canvas-soft p-4 rounded-lg border border-hairline text-left mb-6 space-y-2">
               <div className="flex justify-between mb-2">
-                <span className="font-medium">Transaction ID:</span>
-                <span className="font-mono">{transactionId}</span>
+                <span className="font-medium text-ink-mute">Transaction ID</span>
+                <span className="font-mono text-xs text-ink">{transactionId}</span>
               </div>
               <div className="flex justify-between mb-2">
-                <span className="font-medium">Payment Method:</span>
-                <span>{paymentMethods.find(m => m.id === selectedMethod)?.name}</span>
+                <span className="font-medium text-ink-mute">Payment Method</span>
+                <span className="font-bold text-ink">{paymentMethods.find(m => m.id === selectedMethod)?.name}</span>
               </div>
               <div className="flex justify-between">
-                <span className="font-medium">Date:</span>
-                <span>{new Date().toLocaleString()}</span>
+                <span className="font-medium text-ink-mute">Date</span>
+                <span className="font-bold text-ink">{new Date().toLocaleString("en-GB")}</span>
               </div>
             </div>
             
             <div className="flex gap-3">
-              <Button onClick={resetForm} className="flex-1">
+              <Button onClick={resetForm} className="flex-1 rounded-md">
                 Process Another Payment
               </Button>
              
@@ -444,24 +444,26 @@ export function PaymentTerminal() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <div className="mb-8 text-center">
-        <h1 className="text-3xl font-bold text-foreground mb-2">Payment Terminal</h1>
-        <p className="text-muted-foreground">Accept payments quickly and securely</p>
+    <div className="max-w-5xl mx-auto space-y-6 px-4 py-6 sm:px-6 lg:py-8">
+      <div className="space-y-2 border-b border-hairline pb-6">
+        <h1 className="text-display-md font-bold tracking-tight text-ink">Payment Terminal</h1>
+        <p className="text-body-md font-medium text-ink-mute">Accept payments quickly and securely.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Payment Details */}
-        <Card>
+        <Card className="border-hairline rounded-lg bg-canvas shadow-sm">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5" />
+            <CardTitle className="text-heading-sm flex items-center gap-3 text-ink">
+              <div className="p-2 bg-primary/5 rounded-lg">
+                <DollarSign className="h-5 w-5 text-primary" />
+              </div>
               Payment Details
             </CardTitle>
-            <CardDescription>Enter the payment information</CardDescription>
+            <CardDescription className="text-caption font-medium text-ink-mute">Enter the payment information</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <Label htmlFor="amount">Amount *</Label>
                 <Input
@@ -472,12 +474,13 @@ export function PaymentTerminal() {
                   placeholder="0.00"
                   min="0"
                   step="0.01"
+                  className="h-10 border-hairline"
                 />
               </div>
               <div>
                 <Label htmlFor="currency">Currency</Label>
                 <Select value={selectedCurrency} onValueChange={setSelectedCurrency}>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-10 border-hairline">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -497,6 +500,7 @@ export function PaymentTerminal() {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Payment for services..."
+                className="h-10 border-hairline"
               />
             </div>
             <div>
@@ -505,10 +509,11 @@ export function PaymentTerminal() {
                 id="customerName"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
-                placeholder="John Doe"
+                placeholder="Customer name"
+                className="h-10 border-hairline"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <Label htmlFor="customerEmail">Customer Email </Label>
                 <Input
@@ -516,7 +521,8 @@ export function PaymentTerminal() {
                   type="email"
                   value={customerEmail}
                   onChange={(e) => setCustomerEmail(e.target.value)}
-                  placeholder="customer@example.com"
+                  placeholder="Customer email"
+                  className="h-10 border-hairline"
                 />
               </div>
               <div>
@@ -526,7 +532,8 @@ export function PaymentTerminal() {
                   type="tel"
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value)}
-                  placeholder="+1 234 567 8900"
+                  placeholder="+44 20 0000 0000"
+                  className="h-10 border-hairline"
                 />
               </div>
             </div>
@@ -534,10 +541,10 @@ export function PaymentTerminal() {
         </Card>
 
         {/* Payment Methods */}
-        <Card>
+        <Card className="border-hairline rounded-lg bg-canvas shadow-sm">
           <CardHeader>
-            <CardTitle>Payment Method</CardTitle>
-            <CardDescription>Choose how the customer will pay</CardDescription>
+            <CardTitle className="text-heading-sm text-ink">Payment Method</CardTitle>
+            <CardDescription className="text-caption font-medium text-ink-mute">Choose how the customer will pay</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -546,18 +553,18 @@ export function PaymentTerminal() {
                   key={method.id}
                   className={`p-4 border rounded-lg cursor-pointer transition-colors ${
                     selectedMethod === method.id
-                      ? "border-blue-500 bg-blue-50"
-                      : "border-gray-300 hover:border-blue-300"
+                      ? "border-primary bg-primary/5"
+                      : "border-hairline hover:border-primary/40 hover:bg-canvas-soft"
                   }`}
                   onClick={() => setSelectedMethod(method.id)}
                 >
                   <div className="flex items-center gap-3">
                     {method.icon}
                     <div className="flex-1">
-                      <h4 className="font-medium">{method.name}</h4>
-                      <p className="text-sm text-muted-foreground">{method.description}</p>
+                      <h4 className="font-bold text-ink">{method.name}</h4>
+                      <p className="text-sm text-ink-mute">{method.description}</p>
                     </div>
-                    {selectedMethod === method.id && <Badge className="bg-blue-500">Selected</Badge>}
+                    {selectedMethod === method.id && <Badge className="bg-primary text-white border-primary rounded-full">Selected</Badge>}
                   </div>
                 </div>
               ))}
@@ -565,16 +572,16 @@ export function PaymentTerminal() {
 
             {/* Method-specific fields */}
             {selectedMethod === "card" && !clientSecret && (
-              <div className="mt-6 p-4 border rounded-lg bg-gray-50 text-center">
-                <CreditCard className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                <h4 className="font-medium mb-1">Secure Card Payment</h4>
-                <p className="text-sm text-muted-foreground mb-4">You will enter card details securely via Stripe on the next step.</p>
+              <div className="mt-6 p-4 border border-hairline rounded-lg bg-canvas-soft text-center">
+                <CreditCard className="h-8 w-8 mx-auto mb-2 text-ink-mute" />
+                <h4 className="font-bold text-ink mb-1">Secure Card Payment</h4>
+                <p className="text-sm text-ink-mute mb-4">You will enter card details securely via Stripe on the next step.</p>
               </div>
             )}
 
             {selectedMethod === "mobile" && (
-              <div className="mt-6 p-4 border rounded-lg bg-gray-50">
-                <h4 className="font-medium mb-4 flex items-center gap-2">
+              <div className="mt-6 p-4 border border-hairline rounded-lg bg-canvas-soft">
+                <h4 className="font-bold text-ink mb-4 flex items-center gap-2">
                   <Smartphone className="h-4 w-4" />
                   Mobile Payment Details
                 </h4>
@@ -585,7 +592,7 @@ export function PaymentTerminal() {
                       value={mobileDetails.provider} 
                       onValueChange={(value) => setMobileDetails({...mobileDetails, provider: value})}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="border-hairline bg-canvas">
                         <SelectValue placeholder="Select provider" />
                       </SelectTrigger>
                       <SelectContent>
@@ -603,7 +610,8 @@ export function PaymentTerminal() {
                       type="tel"
                       value={mobileDetails.phone}
                       onChange={(e) => setMobileDetails({...mobileDetails, phone: e.target.value})}
-                      placeholder="+1 234 567 8900"
+                      placeholder="+44 20 0000 0000"
+                      className="border-hairline bg-canvas"
                     />
                   </div>
                 </div>
@@ -611,8 +619,8 @@ export function PaymentTerminal() {
             )}
 
             {selectedMethod === "qr" && (
-              <div className="mt-6 p-4 border rounded-lg bg-gray-50">
-                <h4 className="font-medium mb-4 flex items-center gap-2">
+              <div className="mt-6 p-4 border border-hairline rounded-lg bg-canvas-soft">
+                <h4 className="font-bold text-ink mb-4 flex items-center gap-2">
                   <QrCode className="h-4 w-4" />
                   QR Code Details
                 </h4>
@@ -624,14 +632,15 @@ export function PaymentTerminal() {
                       id="note"
                       value={qrDetails.note}
                       onChange={(e) => setQrDetails({...qrDetails, note: e.target.value})}
-                      placeholder="Payment for invoice #123"
+                      placeholder="Payment reference"
+                      className="border-hairline bg-canvas"
                     />
                   </div>
-                  <div className="p-3 bg-gray-100 rounded-md text-center">
-                    <p className="text-sm text-muted-foreground">Show QR code to customer for scanning</p>
+                  <div className="p-3 bg-canvas rounded-md border border-hairline text-center">
+                    <p className="text-sm text-ink-mute">Show QR code to customer for scanning</p>
                     <div className="mt-2 flex justify-center">
-                      <div className="w-32 h-32 border-4 border-gray-300 flex items-center justify-center">
-                        <QrCode className="h-16 w-16 text-gray-400" />
+                      <div className="w-32 h-32 border border-hairline rounded-md flex items-center justify-center bg-canvas-soft">
+                        <QrCode className="h-16 w-16 text-ink-mute" />
                       </div>
                     </div>
                   </div>
@@ -640,8 +649,8 @@ export function PaymentTerminal() {
             )}
 
             {selectedMethod === "link" && (
-              <div className="mt-6 p-4 border rounded-lg bg-gray-50">
-                <h4 className="font-medium mb-4 flex items-center gap-2">
+              <div className="mt-6 p-4 border border-hairline rounded-lg bg-canvas-soft">
+                <h4 className="font-bold text-ink mb-4 flex items-center gap-2">
                   <Link className="h-4 w-4" />
                   Payment Link Details
                 </h4>
@@ -652,7 +661,7 @@ export function PaymentTerminal() {
                       value={linkDetails.sendMethod} 
                       onValueChange={(value) => setLinkDetails({...linkDetails, sendMethod: value})}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="border-hairline bg-canvas">
                         <SelectValue placeholder="Select method" />
                       </SelectTrigger>
                       <SelectContent>
@@ -670,16 +679,16 @@ export function PaymentTerminal() {
                       onChange={(e) => setLinkDetails({...linkDetails, message: e.target.value})}
                       placeholder="Enter a message to include with the payment link"
                       rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-hairline bg-canvas rounded-md focus:outline-none focus:ring-2 focus:ring-primary/30"
                     />
                   </div>
                   {(linkDetails.sendMethod === "email" || linkDetails.sendMethod === "both") && !customerEmail && (
-                    <div className="p-3 bg-yellow-100 rounded-md text-yellow-800 text-sm">
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-md text-amber-700 text-sm">
                       Please enter customer email above to send payment link
                     </div>
                   )}
                   {(linkDetails.sendMethod === "sms" || linkDetails.sendMethod === "both") && !customerPhone && (
-                    <div className="p-3 bg-yellow-100 rounded-md text-yellow-800 text-sm">
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-md text-amber-700 text-sm">
                       Please enter customer phone number above to send payment link
                     </div>
                   )}
@@ -692,28 +701,28 @@ export function PaymentTerminal() {
 
       {/* Payment Summary */}
       {amount && description && (
-        <Card className="mt-6">
+        <Card className="border-hairline rounded-lg bg-canvas shadow-sm">
           <CardHeader>
-            <CardTitle>Payment Summary</CardTitle>
+            <CardTitle className="text-heading-sm text-ink">Payment Summary</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              <div className="flex justify-between">
-                <span>Description:</span>
-                <span className="font-medium">{description}</span>
+              <div className="flex justify-between gap-4">
+                <span className="text-ink-mute">Description</span>
+                <span className="font-bold text-ink text-right">{description}</span>
               </div>
               <div className="flex justify-between">
-                <span>Amount:</span>
-                <span>{formatCurrency(Number.parseFloat(amount || "0"), selectedCurrency)}</span>
+                <span className="text-ink-mute">Amount</span>
+                <span className="font-bold text-ink">{formatCurrency(Number.parseFloat(amount || "0"), selectedCurrency)}</span>
               </div>
-              <div className="flex justify-between text-sm text-muted-foreground">
+              <div className="flex justify-between gap-4 text-sm text-ink-mute">
                 <span>Processing Fee ({settings.processingFeeRate * 100}% + {formatCurrency(settings.processingFeeFixed, selectedCurrency)}):</span>
                 <span>{formatCurrency(processingFee, selectedCurrency)}</span>
               </div>
               <Separator />
-              <div className="flex justify-between font-bold text-lg">
-                <span>Total:</span>
-                <span>{formatCurrency(totalWithFees, selectedCurrency)}</span>
+              <div className="flex justify-between font-bold text-lg text-ink">
+                <span>Total</span>
+                <span className="text-primary">{formatCurrency(totalWithFees, selectedCurrency)}</span>
               </div>
             </div>
           </CardContent>
@@ -722,15 +731,15 @@ export function PaymentTerminal() {
 
       {/* Generated Link Display */}
       {generatedLink && (
-        <Card className="mt-6">
+        <Card className="border-hairline rounded-lg bg-canvas shadow-sm">
           <CardHeader>
             <CardTitle>Generated Payment Link</CardTitle>
             <CardDescription>Share this link with your customer</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
-              <Input value={generatedLink} readOnly className="font-mono text-sm" />
-              <Button variant="outline" size="icon" onClick={() => copyToClipboard(generatedLink)}>
+              <Input value={generatedLink} readOnly className="font-mono text-sm border-hairline" />
+              <Button variant="outline" size="icon" className="rounded-md border-hairline" onClick={() => copyToClipboard(generatedLink)}>
                 <Copy className="h-4 w-4" />
               </Button>
             </div>
@@ -739,18 +748,18 @@ export function PaymentTerminal() {
       )}
 
       {/* Security Badge */}
-      <div className="mt-6 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+      <div className="flex items-center justify-center gap-2 text-sm text-ink-mute">
         <Shield className="h-4 w-4" />
         <span>All payments are secure and encrypted</span>
       </div>
 
       {/* Action Buttons */}
       {!clientSecret && (
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-1 gap-4">
+        <div className="grid grid-cols-1 gap-4">
           <Button
             onClick={processPayment}
             disabled={isProcessing || isInitializingStripe || !amount || !description || !selectedMethod}
-            className="w-full"
+            className="w-full rounded-md"
             size="lg"
           >
             {isProcessing || isInitializingStripe ? (
@@ -770,7 +779,7 @@ export function PaymentTerminal() {
 
       {/* Stripe Payment Form */}
       {clientSecret && selectedMethod === "card" && (
-        <Card className="mt-6">
+        <Card className="border-hairline rounded-lg bg-canvas shadow-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CreditCard className="h-5 w-5" />
@@ -816,7 +825,7 @@ export function PaymentTerminal() {
       )}
 
       {/* Transaction ID */}
-      <div className="mt-4 text-center text-sm text-muted-foreground">
+      <div className="text-center text-sm text-ink-mute">
         Transaction ID: {transactionId}
       </div>
     </div>

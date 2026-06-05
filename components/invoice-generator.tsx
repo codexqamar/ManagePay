@@ -106,7 +106,7 @@ export function InvoiceGenerator() {
 
   const validateForm = () => {
     if (!selectedCompany) {
-      toast({ title: "Organization required", description: "Please select an entity for this invoice." })
+      toast({ title: "Organisation required", description: "Please select an entity for this invoice." })
       return false
     }
     if (!clientName.trim()) {
@@ -136,13 +136,13 @@ export function InvoiceGenerator() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-10 py-10 px-6 font-sans">
-      <div className="space-y-2 border-b border-hairline pb-8">
+    <div className="max-w-5xl mx-auto space-y-8 px-4 py-6 sm:px-6 lg:py-8 font-sans">
+      <div className="space-y-2 border-b border-hairline pb-6">
         <h1 className="text-display-md font-bold tracking-tight text-ink">Invoicing</h1>
         <p className="text-body-md text-ink-mute font-medium">Draft and dispatch enterprise-grade invoices.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {/* Entity Section */}
         <Card className="bg-canvas border-hairline rounded-lg shadow-sm">
           <CardHeader className="pb-4">
@@ -150,7 +150,7 @@ export function InvoiceGenerator() {
               <div className="p-2 bg-primary/5 rounded-lg">
                 <Building className="w-5 h-5 text-primary" />
               </div>
-              Issuing Organization
+              Issuing Organisation
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -179,17 +179,17 @@ export function InvoiceGenerator() {
           </CardHeader>
           <CardContent className="space-y-4">
             <Input 
-              placeholder="Full Name" 
+              placeholder="Client name" 
               value={clientName} 
               onChange={(e) => setClientName(e.target.value)} 
-              className="h-11 rounded-sm border-hairline-input" 
+              className="h-11 rounded-md border-hairline" 
             />
             <Input 
               type="email" 
               placeholder="Email address" 
               value={clientEmail} 
               onChange={(e) => setClientEmail(e.target.value)} 
-              className="h-11 rounded-sm border-hairline-input" 
+              className="h-11 rounded-md border-hairline" 
             />
           </CardContent>
         </Card>
@@ -197,7 +197,7 @@ export function InvoiceGenerator() {
 
       {/* Invoice Particulars */}
       <Card className="bg-canvas border-hairline rounded-lg shadow-sm">
-        <CardHeader className="pb-6 border-b border-hairline">
+        <CardHeader className="pb-5 border-b border-hairline">
           <CardTitle className="text-heading-sm flex items-center gap-3 text-ink">
             <div className="p-2 bg-primary/5 rounded-lg">
               <FileText className="w-5 h-5 text-primary" />
@@ -205,8 +205,8 @@ export function InvoiceGenerator() {
             Invoice Particulars
           </CardTitle>
         </CardHeader>
-        <CardContent className="pt-8 space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <CardContent className="pt-6 space-y-7">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
             <div className="space-y-2">
               <Label className="text-micro-cap font-bold uppercase tracking-widest text-ink-mute">Reference Number</Label>
               <div className="h-11 flex items-center px-4 bg-canvas-soft rounded-sm border border-hairline font-mono text-sm text-ink-mute">
@@ -215,7 +215,7 @@ export function InvoiceGenerator() {
             </div>
             <div className="space-y-2">
               <Label className="text-micro-cap font-bold uppercase tracking-widest text-ink-mute">Terms (Due Date)</Label>
-              <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="h-11 rounded-sm border-hairline-input" />
+              <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="h-11 rounded-md border-hairline" />
             </div>
             <div className="space-y-2">
               <Label className="text-micro-cap font-bold uppercase tracking-widest text-ink-mute">Currency</Label>
@@ -236,29 +236,29 @@ export function InvoiceGenerator() {
           <div className="space-y-6">
             <Label className="text-micro-cap font-bold uppercase tracking-widest text-ink-mute">Line Items</Label>
             {items.map((item) => (
-              <div key={item.id} className="grid grid-cols-12 gap-4 items-end animate-in fade-in slide-in-from-top-1 duration-300">
+              <div key={item.id} className="grid grid-cols-12 gap-3 items-end animate-in fade-in slide-in-from-top-1 duration-300">
                 <div className="col-span-12 md:col-span-5">
-                  <Input value={item.description} onChange={(e) => updateItem(item.id, "description", e.target.value)} placeholder="Service description" className="h-11 rounded-sm border-hairline-input" />
+                  <Input value={item.description} onChange={(e) => updateItem(item.id, "description", e.target.value)} placeholder="Service description" className="h-11 rounded-md border-hairline" />
                 </div>
                 <div className="col-span-4 md:col-span-2">
-                  <Input type="number" value={item.quantity} onChange={(e) => updateItem(item.id, "quantity", parseInt(e.target.value) || 0)} className="h-11 rounded-sm border-hairline-input text-tabular" />
+                  <Input type="number" value={item.quantity} onChange={(e) => updateItem(item.id, "quantity", parseInt(e.target.value) || 0)} className="h-11 rounded-md border-hairline text-tabular" />
                 </div>
                 <div className="col-span-4 md:col-span-2">
-                  <Input type="number" value={item.rate} onChange={(e) => updateItem(item.id, "rate", parseFloat(e.target.value) || 0)} className="h-11 rounded-sm border-hairline-input text-tabular" />
+                  <Input type="number" value={item.rate} onChange={(e) => updateItem(item.id, "rate", parseFloat(e.target.value) || 0)} className="h-11 rounded-md border-hairline text-tabular" />
                 </div>
                 <div className="col-span-3 md:col-span-2">
-                  <div className="h-11 flex items-center justify-end px-4 bg-canvas-soft rounded-sm border border-hairline font-bold text-ink text-tabular">
+                  <div className="h-11 flex items-center justify-end px-3 bg-canvas-soft rounded-md border border-hairline font-bold text-ink text-tabular text-sm">
                     {formatCurrency(item.amount, selectedCurrency)}
                   </div>
                 </div>
                 <div className="col-span-1">
-                  <Button variant="ghost" size="icon" onClick={() => removeItem(item.id)} disabled={items.length <= 1} className="h-11 w-11 rounded-xl text-ink-mute hover:text-ruby hover:bg-ruby/5">
+                  <Button variant="ghost" size="icon" onClick={() => removeItem(item.id)} disabled={items.length <= 1} className="h-11 w-11 rounded-md text-ink-mute hover:text-ruby hover:bg-ruby/5">
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
             ))}
-            <Button onClick={addItem} variant="outline" size="sm" className="font-bold gap-2">
+            <Button onClick={addItem} variant="outline" size="sm" className="font-bold gap-2 rounded-md border-hairline">
               <Plus className="w-4 h-4" /> Add Line Item
             </Button>
           </div>
@@ -285,13 +285,13 @@ export function InvoiceGenerator() {
 
       {/* Execution Actions */}
       <Card className="bg-canvas border-hairline rounded-lg shadow-sm">
-        <CardContent className="p-8">
+        <CardContent className="p-5 sm:p-6">
           {!showSharingOptions ? (
-            <div className="flex gap-4">
-              <Button className="flex-1 h-12 text-base font-bold" onClick={generateInvoice}>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button className="flex-1 h-11 rounded-md text-sm font-bold" onClick={generateInvoice}>
                 <Send className="w-4 h-4 mr-2" /> Dispatch Invoice
               </Button>
-              <Button variant="outline" className="flex-1 h-12 text-base font-bold" onClick={() => validateForm() && setPreviewInvoice(true)}>
+              <Button variant="outline" className="flex-1 h-11 rounded-md border-hairline text-sm font-bold" onClick={() => validateForm() && setPreviewInvoice(true)}>
                 <Eye className="w-4 h-4 mr-2" /> Live Preview
               </Button>
             </div>
@@ -304,35 +304,35 @@ export function InvoiceGenerator() {
                 <h3 className="text-xl font-bold text-ink">Invoice finalized</h3>
                 <p className="text-body-md text-ink-mute font-medium">Ledger entry {invoiceNumber} is ready for distribution.</p>
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                 <EmailInvoiceDialog
                   invoiceId={invoiceNumber}
                   invoiceNumber={invoiceNumber}
                   clientEmail={clientEmail}
                   amount={total}
                   invoiceData={invoiceData}
-                  trigger={<Button className="w-full h-11 font-bold shadow-sm">Email</Button>}
+                  trigger={<Button className="w-full h-10 rounded-md font-bold shadow-sm">Email</Button>}
                 />
                 <ShareInvoiceDialog
                   invoiceId={invoiceNumber}
                   invoiceNumber={invoiceNumber}
                   amount={total}
-                  trigger={<Button variant="outline" className="w-full h-11 font-bold">Get Link</Button>}
+                  trigger={<Button variant="outline" className="w-full h-10 rounded-md border-hairline font-bold">Get Link</Button>}
                 />
-                <Button variant="outline" className="h-11 font-bold" onClick={() => setPreviewInvoice(true)}>Preview</Button>
-                <Button variant="ghost" className="h-11 font-bold text-ink-mute" onClick={resetInvoice}>New Draft</Button>
+                <Button variant="outline" className="h-10 rounded-md border-hairline font-bold" onClick={() => setPreviewInvoice(true)}>Preview</Button>
+                <Button variant="ghost" className="h-10 rounded-md font-bold text-ink-mute" onClick={resetInvoice}>New Draft</Button>
               </div>
             </div>
           )}
 
           {previewInvoice && (
-            <div className="mt-12 animate-in fade-in duration-500">
+            <div className="mt-8 animate-in fade-in duration-500">
               <div className="flex justify-between items-center mb-6 border-b border-hairline pb-4">
                 <h3 className="text-heading-sm font-bold text-ink">Document Preview</h3>
-                <Button variant="outline" size="sm" onClick={() => setPreviewInvoice(false)}>Close</Button>
+                <Button variant="outline" size="sm" className="rounded-md border-hairline" onClick={() => setPreviewInvoice(false)}>Close</Button>
               </div>
-              <div className="bg-canvas-soft p-12 rounded-xl border border-hairline shadow-inner">
-                <div className="bg-white shadow-xl max-w-2xl mx-auto ring-1 ring-hairline" ref={invoicePreviewRef}>
+              <div className="bg-canvas-soft p-3 sm:p-6 rounded-lg border border-hairline">
+                <div className="bg-white shadow-sm max-w-2xl mx-auto ring-1 ring-hairline" ref={invoicePreviewRef}>
                   <InvoicePreview invoiceData={invoiceData} />
                 </div>
               </div>
