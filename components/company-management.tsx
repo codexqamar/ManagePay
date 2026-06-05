@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useCallback, useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -18,17 +18,22 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Building2, Plus, Edit, Trash2, Settings, CreditCard, BarChart3, Users, Upload, X, Globe, Phone, MapPin, Hash, Link as LinkIcon, Loader2, Mail } from "lucide-react"
+import { Building2, Plus, Edit, Trash2, Settings, CreditCard, BarChart3, Users, Upload, X, Globe, Phone, MapPin, Hash, Link as LinkIcon, Loader2, Mail, ShieldAlert } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useAppStore } from "@/lib/store"
 import { formatCurrency } from "@/lib/currencies"
 import { getSupabaseBrowserClient } from "@/lib/supabase"
+import { useAuth } from "@/hooks/use-auth"
 
 export function CompanyManagement() {
   const { toast } = useToast()
-  const { companies, settings, addCompany, updateCompany, deleteCompany, toggleCompanyStatus } = useAppStore()
+  const { user, loading: authLoading } = useAuth()
+  const isAdmin = user?.role === "admin"
+  
+  const { companies, settings, setCompanies } = useAppStore()
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
+  const [isLoadingCompanies, setIsLoadingCompanies] = useState(true)
   const [editingCompanyId, setEditingCompanyId] = useState<string | null>(null)
   
   const [formData, setFormData] = useState({
@@ -44,9 +49,75 @@ export function CompanyManagement() {
 
   const [stripeStatus, setStripeStatus] = useState<"connected" | "disconnected" | "checking">("checking")
 
-  useEffect(() => {
-    checkStripeConnection()
+  const getAuthHeaders = useCallback(async () => {
+    const supabase = getSupabaseBrowserClient()
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+
+    if (!session?.access_token) {
+      throw new Error("Please sign in again to manage companies.")
+    }
+
+    return {
+      Authorization: `Bearer ${session.access_token}`,
+    }
   }, [])
+
+  const fetchCompanies = useCallback(async () => {
+    if (!user) {
+      setCompanies([])
+      setIsLoadingCompanies(false)
+      return
+    }
+
+    setIsLoadingCompanies(true)
+    try {
+      const response = await fetch("/api/companies", {
+        headers: await getAuthHeaders(),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch companies")
+      }
+
+      const data = await response.json()
+      
+      // Map DB fields to store fields (camelCase)
+      const mappedCompanies = (data || []).map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        email: c.email,
+        address: c.address || "",
+        phone: c.phone || "",
+        website: c.website || "",
+        logoUrl: c.logo_url || "",
+        paymentBaseUrl: c.payment_base_url || "",
+        taxId: c.tax_id || "",
+        stripeAccountId: c.stripe_account_id || "",
+        isActive: c.is_active,
+        createdAt: c.created_at,
+        stats: {
+          totalRevenue: 0, // In a real app, these would be calculated or stored
+          invoiceCount: 0,
+          clientCount: 0,
+        }
+      }))
+      
+      setCompanies(mappedCompanies)
+    } catch (error) {
+      console.error("Failed to fetch companies:", error)
+      toast({ title: "Error", description: "Failed to load companies from database.", variant: "destructive" })
+    } finally {
+      setIsLoadingCompanies(false)
+    }
+  }, [getAuthHeaders, setCompanies, toast, user])
+
+  useEffect(() => {
+    if (authLoading) return
+    fetchCompanies()
+    checkStripeConnection()
+  }, [authLoading, fetchCompanies])
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -85,21 +156,56 @@ export function CompanyManagement() {
     }
   }
 
-  const handleSaveCompany = () => {
+  const handleSaveCompany = async () => {
     if (!formData.name || !formData.email) {
       toast({ title: "Required fields", description: "Name and Email are mandatory.", variant: "destructive" })
       return
     }
 
-    if (editingCompanyId) {
-      updateCompany(editingCompanyId, formData)
-      toast({ title: "Company updated", description: `${formData.name} has been updated.` })
-    } else {
-      addCompany({ ...formData, isActive: true })
-      toast({ title: "Company added", description: `${formData.name} is ready for use.` })
-    }
+    try {
+      const companyData = {
+        name: formData.name,
+        email: formData.email,
+        address: formData.address,
+        phone: formData.phone,
+        website: formData.website,
+        logoUrl: formData.logoUrl,
+        paymentBaseUrl: formData.paymentBaseUrl,
+        taxId: formData.taxId,
+      }
 
-    closeDialog()
+      if (editingCompanyId) {
+        const response = await fetch("/api/companies", {
+          method: "PUT",
+          headers: {
+            ...(await getAuthHeaders()),
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ id: editingCompanyId, ...companyData }),
+        })
+
+        if (!response.ok) throw new Error("Failed to update company")
+        toast({ title: "Company updated", description: `${formData.name} has been updated.` })
+      } else {
+        const response = await fetch("/api/companies", {
+          method: "POST",
+          headers: {
+            ...(await getAuthHeaders()),
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(companyData),
+        })
+
+        if (!response.ok) throw new Error("Failed to create company")
+        toast({ title: "Company added", description: `${formData.name} is ready for use.` })
+      }
+      
+      fetchCompanies()
+      closeDialog()
+    } catch (error) {
+      console.error("Failed to save company:", error)
+      toast({ title: "Error", description: "Failed to save company to database.", variant: "destructive" })
+    }
   }
 
   const openAddDialog = () => {
@@ -161,24 +267,54 @@ export function CompanyManagement() {
     return formatCurrency(amount, settings.defaultCurrency)
   }
 
-  const handleToggleStatus = (id: string) => {
+  const handleToggleStatus = async (id: string) => {
     const company = companies.find((c) => c.id === id)
-    toggleCompanyStatus(id)
+    if (!company) return
 
-    toast({
-      title: `Company ${company?.isActive ? "Deactivated" : "Activated"}`,
-      description: `${company?.name} is now ${company?.isActive ? "inactive" : "active"}`,
-    })
+    try {
+      const response = await fetch("/api/companies", {
+        method: "PUT",
+        headers: {
+          ...(await getAuthHeaders()),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id, isActive: !company.isActive }),
+      })
+
+      if (!response.ok) throw new Error("Failed to update company status")
+
+      toast({
+        title: `Company ${company.isActive ? "Deactivated" : "Activated"}`,
+        description: `${company.name} is now ${company.isActive ? "inactive" : "active"}`,
+      })
+      fetchCompanies()
+    } catch (error) {
+      console.error("Failed to toggle status:", error)
+      toast({ title: "Error", description: "Failed to update company status.", variant: "destructive" })
+    }
   }
 
-  const handleDeleteCompany = (id: string) => {
+  const handleDeleteCompany = async (id: string) => {
     const company = companies.find((c) => c.id === id)
-    deleteCompany(id)
+    if (!company) return
 
-    toast({
-      title: "Company Deleted",
-      description: `${company?.name} has been removed`,
-    })
+    try {
+      const response = await fetch(`/api/companies?id=${encodeURIComponent(id)}`, {
+        method: "DELETE",
+        headers: await getAuthHeaders(),
+      })
+
+      if (!response.ok) throw new Error("Failed to delete company")
+
+      toast({
+        title: "Company Deleted",
+        description: `${company.name} has been removed`,
+      })
+      fetchCompanies()
+    } catch (error) {
+      console.error("Failed to delete company:", error)
+      toast({ title: "Error", description: "Failed to delete company.", variant: "destructive" })
+    }
   }
 
   const totalStats = companies.reduce(
@@ -196,182 +332,188 @@ export function CompanyManagement() {
       <div className="flex flex-col gap-4 border-b border-hairline pb-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-display-md font-bold tracking-tight text-ink">Companies</h1>
-          <p className="text-body-md font-medium text-ink-mute">Manage your business entities and Stripe accounts.</p>
+          <p className="text-body-md font-medium text-ink-mute">
+            {isAdmin 
+              ? "Manage your business entities and Stripe accounts." 
+              : "View available business entities for invoice generation."}
+          </p>
         </div>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="h-10 rounded-md font-bold" onClick={openAddDialog}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Company
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[640px] p-0 overflow-hidden border-none shadow-2xl rounded-2xl">
-            <DialogHeader className="p-6 border-b border-hairline">
-              <DialogTitle className="text-heading-lg text-ink">
-                {editingCompanyId ? "Edit Company Profile" : "Create New Company"}
-              </DialogTitle>
-              <DialogDescription className="text-body-md font-medium text-ink-mute">
-                {editingCompanyId 
-                  ? "Update your business details and branding settings." 
-                  : "Add a new business entity to manage invoices and payments."}
-              </DialogDescription>
-            </DialogHeader>
+        {isAdmin && (
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="h-10 rounded-md font-bold" onClick={openAddDialog}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Company
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[640px] p-0 overflow-hidden border-none shadow-2xl rounded-2xl">
+              <DialogHeader className="p-6 border-b border-hairline">
+                <DialogTitle className="text-heading-lg text-ink">
+                  {editingCompanyId ? "Edit Company Profile" : "Create New Company"}
+                </DialogTitle>
+                <DialogDescription className="text-body-md font-medium text-ink-mute">
+                  {editingCompanyId 
+                    ? "Update your business details and branding settings." 
+                    : "Add a new business entity to manage invoices and payments."}
+                </DialogDescription>
+              </DialogHeader>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-8">
-              {/* Logo Section */}
-              <div className="space-y-4">
-                <Label className="text-micro-cap font-black uppercase tracking-widest text-ink-mute">Company Logo</Label>
-                <div className="flex items-center gap-6">
-                  <div className="relative group">
-                    <div className="h-24 w-24 rounded-2xl border-2 border-dashed border-hairline bg-canvas-soft flex items-center justify-center overflow-hidden">
-                      {formData.logoUrl ? (
-                        <img src={formData.logoUrl} alt="Logo" className="h-full w-full object-contain" />
-                      ) : (
-                        <Building2 className="h-8 w-8 text-ink-mute" />
-                      )}
-                      {isUploading && (
-                        <div className="absolute inset-0 bg-canvas/80 flex items-center justify-center">
-                          <Loader2 className="h-6 w-6 text-primary animate-spin" />
-                        </div>
+              <div className="flex-1 overflow-y-auto p-6 space-y-8">
+                {/* Logo Section */}
+                <div className="space-y-4">
+                  <Label className="text-micro-cap font-black uppercase tracking-widest text-ink-mute">Company Logo</Label>
+                  <div className="flex items-center gap-6">
+                    <div className="relative group">
+                      <div className="h-24 w-24 rounded-2xl border-2 border-dashed border-hairline bg-canvas-soft flex items-center justify-center overflow-hidden">
+                        {formData.logoUrl ? (
+                          <img src={formData.logoUrl} alt="Logo" className="h-full w-full object-contain" />
+                        ) : (
+                          <Building2 className="h-8 w-8 text-ink-mute" />
+                        )}
+                        {isUploading && (
+                          <div className="absolute inset-0 bg-canvas/80 flex items-center justify-center">
+                            <Loader2 className="h-6 w-6 text-primary animate-spin" />
+                          </div>
+                        )}
+                      </div>
+                      <label className="absolute -bottom-2 -right-2 h-8 w-8 bg-primary text-white rounded-full flex items-center justify-center cursor-pointer shadow-lg hover:bg-primary-deep transition-colors">
+                        <Upload className="h-4 w-4" />
+                        <input type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} disabled={isUploading} />
+                      </label>
+                      {formData.logoUrl && (
+                        <button 
+                          onClick={() => setFormData(prev => ({ ...prev, logoUrl: "" }))}
+                          className="absolute -top-2 -right-2 h-6 w-6 bg-ruby text-white rounded-full flex items-center justify-center shadow-md hover:bg-ruby/80"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
                       )}
                     </div>
-                    <label className="absolute -bottom-2 -right-2 h-8 w-8 bg-primary text-white rounded-full flex items-center justify-center cursor-pointer shadow-lg hover:bg-primary-deep transition-colors">
-                      <Upload className="h-4 w-4" />
-                      <input type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} disabled={isUploading} />
-                    </label>
-                    {formData.logoUrl && (
-                      <button 
-                        onClick={() => setFormData(prev => ({ ...prev, logoUrl: "" }))}
-                        className="absolute -top-2 -right-2 h-6 w-6 bg-ruby text-white rounded-full flex items-center justify-center shadow-md hover:bg-ruby/80"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    )}
+                    <div className="space-y-1">
+                      <p className="text-sm font-bold text-ink">Business Logo</p>
+                      <p className="text-xs text-ink-mute max-w-[240px]">
+                        Used on invoices and payment pages. Recommended size 400x400px, PNG or JPG.
+                      </p>
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <p className="text-sm font-bold text-ink">Business Logo</p>
-                    <p className="text-xs text-ink-mute max-w-[240px]">
-                      Used on invoices and payment pages. Recommended size 400x400px, PNG or JPG.
+                </div>
+
+                <Separator className="bg-hairline" />
+
+                {/* General Info */}
+                <div className="space-y-6">
+                  <h3 className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                    <Building2 className="h-4 w-4" />
+                    General Information
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label className="text-xs font-black uppercase tracking-widest text-ink-mute">Legal Business Name</Label>
+                      <div className="relative">
+                        <Building2 className="absolute left-3 top-3 h-4 w-4 text-ink-mute" />
+                        <Input
+                          value={formData.name}
+                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                          placeholder="e.g. Acme Corp"
+                          className="pl-10 h-11 border-hairline focus:ring-primary"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs font-black uppercase tracking-widest text-ink-mute">Billing Email</Label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-3 h-4 w-4 text-ink-mute" />
+                        <Input
+                          type="email"
+                          value={formData.email}
+                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                          placeholder="billing@acme.com"
+                          className="pl-10 h-11 border-hairline"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs font-black uppercase tracking-widest text-ink-mute">Business Address</Label>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-3 h-4 w-4 text-ink-mute" />
+                      <Textarea
+                        value={formData.address}
+                        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                        placeholder="Full registered address..."
+                        className="pl-10 min-h-[100px] border-hairline resize-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label className="text-xs font-black uppercase tracking-widest text-ink-mute">Website</Label>
+                      <div className="relative">
+                        <Globe className="absolute left-3 top-3 h-4 w-4 text-ink-mute" />
+                        <Input
+                          value={formData.website}
+                          onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                          placeholder="https://acme.com"
+                          className="pl-10 h-11 border-hairline"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs font-black uppercase tracking-widest text-ink-mute">Tax / VAT ID</Label>
+                      <div className="relative">
+                        <Hash className="absolute left-3 top-3 h-4 w-4 text-ink-mute" />
+                        <Input
+                          value={formData.taxId}
+                          onChange={(e) => setFormData({ ...formData, taxId: e.target.value })}
+                          placeholder="GB123456789"
+                          className="pl-10 h-11 border-hairline"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator className="bg-hairline" />
+
+                {/* Whitelabel Info */}
+                <div className="space-y-6">
+                  <h3 className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                    <Globe className="h-4 w-4" />
+                    Branding & Whitelabel
+                  </h3>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs font-black uppercase tracking-widest text-ink-mute">Custom Payment Domain</Label>
+                    <div className="relative">
+                      <LinkIcon className="absolute left-3 top-3 h-4 w-4 text-ink-mute" />
+                      <Input
+                        value={formData.paymentBaseUrl}
+                        onChange={(e) => setFormData({ ...formData, paymentBaseUrl: e.target.value })}
+                        placeholder="pay.acme.com"
+                        className="pl-10 h-11 border-hairline"
+                      />
+                    </div>
+                    <p className="text-[11px] text-ink-mute mt-1">
+                      Point a CNAME record from this domain to <span className="font-mono text-primary">pay.stratonally.com</span> for a trace-free experience.
                     </p>
                   </div>
                 </div>
               </div>
 
-              <Separator className="bg-hairline" />
-
-              {/* General Info */}
-              <div className="space-y-6">
-                <h3 className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                  <Building2 className="h-4 w-4" />
-                  General Information
-                </h3>
-                
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label className="text-xs font-black uppercase tracking-widest text-ink-mute">Legal Business Name</Label>
-                    <div className="relative">
-                      <Building2 className="absolute left-3 top-3 h-4 w-4 text-ink-mute" />
-                      <Input
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        placeholder="e.g. Acme Corp"
-                        className="pl-10 h-11 border-hairline focus:ring-primary"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-xs font-black uppercase tracking-widest text-ink-mute">Billing Email</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-3 h-4 w-4 text-ink-mute" />
-                      <Input
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        placeholder="billing@acme.com"
-                        className="pl-10 h-11 border-hairline"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-xs font-black uppercase tracking-widest text-ink-mute">Business Address</Label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-3 h-4 w-4 text-ink-mute" />
-                    <Textarea
-                      value={formData.address}
-                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                      placeholder="Full registered address..."
-                      className="pl-10 min-h-[100px] border-hairline resize-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label className="text-xs font-black uppercase tracking-widest text-ink-mute">Website</Label>
-                    <div className="relative">
-                      <Globe className="absolute left-3 top-3 h-4 w-4 text-ink-mute" />
-                      <Input
-                        value={formData.website}
-                        onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                        placeholder="https://acme.com"
-                        className="pl-10 h-11 border-hairline"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-xs font-black uppercase tracking-widest text-ink-mute">Tax / VAT ID</Label>
-                    <div className="relative">
-                      <Hash className="absolute left-3 top-3 h-4 w-4 text-ink-mute" />
-                      <Input
-                        value={formData.taxId}
-                        onChange={(e) => setFormData({ ...formData, taxId: e.target.value })}
-                        placeholder="GB123456789"
-                        className="pl-10 h-11 border-hairline"
-                      />
-                    </div>
-                  </div>
-                </div>
+              <div className="p-6 bg-canvas-soft border-t border-hairline flex justify-end gap-3 rounded-b-2xl">
+                <Button variant="outline" className="rounded-full px-6 border-hairline" onClick={closeDialog}>
+                  Discard
+                </Button>
+                <Button className="rounded-full px-8 font-bold" onClick={handleSaveCompany}>
+                  {editingCompanyId ? "Save Changes" : "Create Company"}
+                </Button>
               </div>
-
-              <Separator className="bg-hairline" />
-
-              {/* Whitelabel Info */}
-              <div className="space-y-6">
-                <h3 className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                  <Globe className="h-4 w-4" />
-                  Branding & Whitelabel
-                </h3>
-
-                <div className="space-y-2">
-                  <Label className="text-xs font-black uppercase tracking-widest text-ink-mute">Custom Payment Domain</Label>
-                  <div className="relative">
-                    <LinkIcon className="absolute left-3 top-3 h-4 w-4 text-ink-mute" />
-                    <Input
-                      value={formData.paymentBaseUrl}
-                      onChange={(e) => setFormData({ ...formData, paymentBaseUrl: e.target.value })}
-                      placeholder="pay.acme.com"
-                      className="pl-10 h-11 border-hairline"
-                    />
-                  </div>
-                  <p className="text-[11px] text-ink-mute mt-1">
-                    Point a CNAME record from this domain to <span className="font-mono text-primary">pay.stratonally.com</span> for a trace-free experience.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-6 bg-canvas-soft border-t border-hairline flex justify-end gap-3 rounded-b-2xl">
-              <Button variant="outline" className="rounded-full px-6 border-hairline" onClick={closeDialog}>
-                Discard
-              </Button>
-              <Button className="rounded-full px-8 font-bold" onClick={handleSaveCompany}>
-                {editingCompanyId ? "Save Changes" : "Create Company"}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       {/* Overview Stats */}
@@ -461,25 +603,27 @@ export function CompanyManagement() {
                               )}
                             </div>
                           </div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Button variant="ghost" size="sm" className="rounded-md" onClick={() => openEditDialog(company)}>
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm" className="rounded-md">
-                              <Settings className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm" className="rounded-md font-bold text-ink-mute" onClick={() => handleToggleStatus(company.id)}>
-                              {company.isActive ? "Deactivate" : "Activate"}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteCompany(company.id)}
-                              className="rounded-md text-ruby hover:text-ruby hover:bg-ruby/10"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
+                          {isAdmin && (
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Button variant="ghost" size="sm" className="rounded-md" onClick={() => openEditDialog(company)}>
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="sm" className="rounded-md">
+                                <Settings className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="sm" className="rounded-md font-bold text-ink-mute" onClick={() => handleToggleStatus(company.id)}>
+                                {company.isActive ? "Deactivate" : "Activate"}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteCompany(company.id)}
+                                className="rounded-md text-ruby hover:text-ruby hover:bg-ruby/10"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )}
                         </div>
 
                         <Separator className="my-4" />
@@ -528,25 +672,27 @@ export function CompanyManagement() {
                             </p>
                           </div>
                         </div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Button variant="ghost" size="sm" className="rounded-md" onClick={() => openEditDialog(company)}>
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm" className="rounded-md">
-                            <Settings className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm" className="rounded-md font-bold text-ink-mute" onClick={() => handleToggleStatus(company.id)}>
-                            {company.isActive ? "Deactivate" : "Activate"}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteCompany(company.id)}
-                            className="rounded-md text-ruby hover:text-ruby hover:bg-ruby/10"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+                        {isAdmin && (
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Button variant="ghost" size="sm" className="rounded-md" onClick={() => openEditDialog(company)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="rounded-md">
+                              <Settings className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="rounded-md font-bold text-ink-mute" onClick={() => handleToggleStatus(company.id)}>
+                              {company.isActive ? "Deactivate" : "Activate"}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteCompany(company.id)}
+                              className="rounded-md text-ruby hover:text-ruby hover:bg-ruby/10"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
                       </div>
 
                       <Separator className="my-4" />

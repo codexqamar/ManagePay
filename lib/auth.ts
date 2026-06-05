@@ -3,7 +3,9 @@ import { getSupabaseBrowserClient } from "@/lib/supabase"
 import { getProfileById, upsertProfile } from "@/lib/database"
 import type { Profile } from "@/lib/supabase-types"
 
-export type AppUser = User
+export type AppUser = User & {
+  role?: "admin" | "user"
+}
 
 export function getUserDisplayName(user: AppUser | null) {
   if (!user) return ""

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { Building2, Edit, Mail, Phone, Plus, Search, Trash2, UserRound, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -23,6 +23,7 @@ import { useToast } from "@/hooks/use-toast"
 import { getSupabaseBrowserClient } from "@/lib/supabase"
 import { cn } from "@/lib/utils"
 import type { Client } from "@/lib/supabase-types"
+import { useAuth } from "@/hooks/use-auth"
 
 type ClientFormValues = {
   name: string
@@ -94,6 +95,8 @@ async function getSignedInUserId() {
 
 export function ClientManagement() {
   const { toast } = useToast()
+  const { user, loading: authLoading } = useAuth()
+
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -122,22 +125,35 @@ export function ClientManagement() {
     )
   }, [clients, search])
 
-  const loadClients = async () => {
+  const loadClients = useCallback(async () => {
+    if (!user) {
+      setClients([])
+      setLoading(false)
+      return
+    }
+
     setLoading(true)
     try {
       const supabase = getSupabaseBrowserClient()
-      const userId = await getSignedInUserId()
-      const { data, error } = await supabase
-        .from("clients")
-        .select("*")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false })
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
 
-      if (error) {
-        throw new Error(error.message)
+      if (!session?.access_token) {
+        throw new Error("Please sign in again to manage clients.")
       }
 
-      setClients((data ?? []) as Client[])
+      const response = await fetch("/api/clients", {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch clients")
+      }
+
+      setClients((await response.json()) as Client[])
     } catch (error) {
       toast({
         title: "Clients unavailable",
@@ -147,11 +163,12 @@ export function ClientManagement() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [toast, user])
 
   useEffect(() => {
+    if (authLoading) return
     loadClients()
-  }, [])
+  }, [authLoading, loadClients])
 
   const updateForm = (field: keyof ClientFormValues, value: string | boolean) => {
     setForm((current) => ({ ...current, [field]: value }))

@@ -34,6 +34,7 @@ import { EmailInvoiceDialog } from "@/components/email-invoice-dialog"
 import { InvoicePreview } from "@/components/invoice-preview"
 import { ShareInvoiceDialog } from "@/components/share-invoice-dialog"
 import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/hooks/use-auth"
 import { CURRENCIES, formatCurrency } from "@/lib/currencies"
 import { getSupabaseBrowserClient } from "@/lib/supabase"
 import type { Client, Invoice } from "@/lib/supabase-types"
@@ -80,11 +81,56 @@ function getInvoiceErrorMessage(error: unknown) {
 
 export function InvoiceGenerator() {
   const { toast } = useToast()
-  const { companies, settings } = useAppStore()
+  const { companies, settings, setCompanies } = useAppStore()
 
   const [clients, setClients] = useState<Client[]>([])
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
+
+  const fetchCompanies = useCallback(async () => {
+    try {
+      const supabase = getSupabaseBrowserClient()
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session?.access_token) return
+
+      const response = await fetch("/api/companies", {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      })
+
+      if (!response.ok) throw new Error("Failed to fetch companies")
+
+      const data = await response.json()
+      
+      const mappedCompanies = (data || []).filter((c: any) => c.is_active).map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        email: c.email,
+        address: c.address || "",
+        phone: c.phone || "",
+        website: c.website || "",
+        logoUrl: c.logo_url || "",
+        paymentBaseUrl: c.payment_base_url || "",
+        taxId: c.tax_id || "",
+        stripeAccountId: c.stripe_account_id || "",
+        isActive: c.is_active,
+        createdAt: c.created_at,
+        stats: { totalRevenue: 0, invoiceCount: 0, clientCount: 0 }
+      }))
+      
+      setCompanies(mappedCompanies)
+    } catch (error) {
+      console.error("Failed to fetch companies:", error)
+    }
+  }, [setCompanies])
+
+  useEffect(() => {
+    fetchCompanies()
+  }, [fetchCompanies])
   const [selectedCompanyId, setSelectedCompanyId] = useState("")
   const [selectedClientId, setSelectedClientId] = useState("")
   const [invoiceNumber, setInvoiceNumber] = useState("") // Start empty to avoid hydration mismatch
@@ -101,11 +147,13 @@ export function InvoiceGenerator() {
   const selectedCompany = companies.find((company) => company.id === selectedCompanyId) || null
   const selectedClient = clients.find((client) => client.id === selectedClientId) || null
 
+  const { user } = useAuth()
+  const isAdmin = user?.role === "admin"
+
   const loadData = useCallback(async () => {
     setLoading(true)
     try {
       const supabase = getSupabaseBrowserClient()
-      const { data: { user } } = await supabase.auth.getUser()
 
       // Initialize defaults only on client mount
       if (!invoiceNumber) {
@@ -117,10 +165,19 @@ export function InvoiceGenerator() {
 
       if (!user) return
 
+      // Build queries based on role
+      let clientsQuery = supabase.from("clients").select("*").eq("is_active", true).order("name")
+      let invoicesQuery = supabase.from("invoices").select("*").order("created_at", { ascending: false })
+
+      if (!isAdmin) {
+        clientsQuery = clientsQuery.eq("user_id", user.id)
+        invoicesQuery = invoicesQuery.eq("seller_id", user.id)
+      }
+
       // Parallel fetch clients and invoices
       const [clientsRes, invoicesRes] = await Promise.all([
-        supabase.from("clients").select("*").eq("user_id", user.id).eq("is_active", true).order("name"),
-        supabase.from("invoices").select("*").eq("seller_id", user.id).order("created_at", { ascending: false })
+        clientsQuery,
+        invoicesQuery
       ])
 
       if (clientsRes.error) throw clientsRes.error
@@ -137,7 +194,7 @@ export function InvoiceGenerator() {
     } finally {
       setLoading(false)
     }
-  }, [toast])
+  }, [toast, user, isAdmin, invoiceNumber, items.length])
 
   useEffect(() => {
     loadData()

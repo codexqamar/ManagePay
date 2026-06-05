@@ -10,8 +10,25 @@ export interface Profile {
   email: string
   full_name: string | null
   avatar_url: string | null
+  role: "admin" | "user"
   stripe_account_id: string | null
   stripe_account_enabled: boolean
+  updated_at: string
+}
+
+export interface Company {
+  id: string
+  name: string
+  email: string
+  address: string | null
+  phone: string | null
+  website: string | null
+  logo_url: string | null
+  payment_base_url: string | null
+  tax_id: string | null
+  stripe_account_id: string | null
+  is_active: boolean
+  created_at: string
   updated_at: string
 }
 

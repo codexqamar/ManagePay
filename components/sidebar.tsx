@@ -2,21 +2,12 @@
 
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { FileText, CreditCard, BarChart3, Settings, Building2, Plus, Menu, X, LogOut, ChevronLeft, ChevronRight, Users } from "lucide-react"
+import { FileText, CreditCard, BarChart3, Settings, Building2, Plus, Menu, X, LogOut, ChevronLeft, ChevronRight, Users, UserCog } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/hooks/use-auth"
-
-const navigation = [
-  { name: "Invoice Generator", icon: FileText, href: "/invoice-generator", current: false },
-  { name: "Payment Terminal", icon: CreditCard, href: "/terminal", current: false },
-  { name: "Dashboard", icon: BarChart3, href: "/dashboard", current: false },
-  { name: "Companies", icon: Building2, href: "/companies", current: false },
-  { name: "Clients", icon: Users, href: "/clients", current: false },
-  { name: "Settings", icon: Settings, href: "/settings", current: false },
-]
 
 export function Sidebar() {
   const [isOpen, setIsOpen] = useState(false)
@@ -25,6 +16,7 @@ export function Sidebar() {
   const router = useRouter()
   const { toast } = useToast()
   const { user, profile, logout } = useAuth()
+  const isAdmin = user?.role === "admin"
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -39,7 +31,17 @@ export function Sidebar() {
     }
   }, [isCollapsed])
 
-  const updatedNavigation = navigation.map((item) => ({
+  const navItems = [
+    { name: "Invoice Generator", icon: FileText, href: "/invoice-generator", current: false },
+    { name: "Payment Terminal", icon: CreditCard, href: "/terminal", current: false },
+    { name: "Dashboard", icon: BarChart3, href: "/dashboard", current: false },
+    { name: "Companies", icon: Building2, href: "/companies", current: false },
+    { name: "Clients", icon: Users, href: "/clients", current: false },
+    ...(isAdmin ? [{ name: "User Management", icon: UserCog, href: "/users", current: false }] : []),
+    { name: "Settings", icon: Settings, href: "/settings", current: false },
+  ]
+
+  const updatedNavigation = navItems.map((item) => ({
     ...item,
     current: pathname === item.href,
   }))

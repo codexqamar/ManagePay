@@ -74,6 +74,7 @@ interface AppState {
    transactions: Transaction[]
 
   // Company actions
+  setCompanies: (companies: Company[]) => void
   addCompany: (company: Omit<Company, "id" | "createdAt" | "stats">) => void
   updateCompany: (id: string, updates: Partial<Company>) => void
   deleteCompany: (id: string) => void
@@ -98,6 +99,7 @@ export const useAppStore = create<AppState>()(
       },
 
       // ✅ Company actions
+      setCompanies: (companies) => set({ companies }),
       addCompany: (companyData) => {
         const company: Company = {
           ...companyData,
@@ -151,6 +153,11 @@ addTransaction: (txn) => {
     }),
     {
       name: "payment-terminal-storage", // persisted key in localStorage
+      partialize: (state) => ({
+        settings: state.settings,
+        transactions: state.transactions,
+        // companies are now handled via DB
+      }),
     },
   ),
 )

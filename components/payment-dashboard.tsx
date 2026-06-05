@@ -39,12 +39,13 @@ import { formatCurrency } from "@/lib/currencies"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { getSupabaseBrowserClient } from "@/lib/supabase"
-import type { Invoice as SupabaseInvoice } from "@/lib/supabase-types"
+import type { Client as SupabaseClient, Company as SupabaseCompany, Invoice as SupabaseInvoice } from "@/lib/supabase-types"
 import { ShareInvoiceDialog } from "@/components/share-invoice-dialog"
+import { useAuth } from "@/hooks/use-auth"
 
 interface DashboardStats {
   totalRevenue: number
-  monthlyRevenue: number
+  totalInvoiced: number
   totalInvoices: number
   paidInvoices: number
   pendingInvoices: number
@@ -64,46 +65,95 @@ interface Invoice {
   currency: string
 }
 
+interface CompanySummary {
+  id: string
+  name: string
+}
+
+function getInvoiceCompanyId(invoice: SupabaseInvoice) {
+  const directId = invoice.metadata?.companyId
+  if (typeof directId === "string") return directId
+
+  const company = invoice.metadata?.company as { id?: unknown } | undefined
+  return typeof company?.id === "string" ? company.id : null
+}
+
 export function PaymentDashboard() {
-  const { companies, settings } = useAppStore()
+  const { user } = useAuth()
+  const { settings } = useAppStore()
   const [selectedPeriod, setSelectedPeriod] = useState("6months")
   const [selectedCompany, setSelectedCompany] = useState("all")
   const [invoicesData, setInvoicesData] = useState<SupabaseInvoice[]>([])
+  const [clientsData, setClientsData] = useState<SupabaseClient[]>([])
+  const [companiesData, setCompaniesData] = useState<SupabaseCompany[]>([])
   const [loading, setLoading] = useState(true)
 
   const fetchInvoices = useCallback(async () => {
     setLoading(true)
     try {
       const supabase = getSupabaseBrowserClient()
-      const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      const { data, error } = await supabase
-        .from("invoices")
-        .select("*")
-        .eq("seller_id", user.id)
-        .order("created_at", { ascending: false })
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
 
-      if (error) throw error
-      setInvoicesData(data || [])
+      if (!session?.access_token) return
+
+      const response = await fetch("/api/dashboard-data", {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch dashboard data")
+      }
+
+      const data = await response.json()
+      setInvoicesData((data.invoices || []) as SupabaseInvoice[])
+      setClientsData((data.clients || []) as SupabaseClient[])
+      setCompaniesData((data.companies || []) as SupabaseCompany[])
     } catch (error) {
       console.error("Error fetching dashboard invoices:", error)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [user])
 
   useEffect(() => {
     fetchInvoices()
   }, [fetchInvoices])
 
+  const companySummaries = useMemo<CompanySummary[]>(() => {
+    const byId = new Map<string, CompanySummary>()
+
+    companiesData.forEach((company) => {
+      byId.set(company.id, { id: company.id, name: company.name })
+    })
+
+    invoicesData.forEach((invoice) => {
+      const company = invoice.metadata?.company as { id?: unknown; name?: unknown } | undefined
+      const id = typeof company?.id === "string" ? company.id : null
+      const name = typeof company?.name === "string" ? company.name : null
+
+      if (id && name && !byId.has(id)) {
+        byId.set(id, { id, name })
+      }
+    })
+
+    return Array.from(byId.values()).sort((a, b) => a.name.localeCompare(b.name))
+  }, [companiesData, invoicesData])
+
   const stats = useMemo((): DashboardStats => {
     const filteredInvoices = selectedCompany === "all" 
       ? invoicesData 
-      : invoicesData.filter(inv => inv.metadata?.companyId === selectedCompany)
+      : invoicesData.filter(inv => getInvoiceCompanyId(inv) === selectedCompany)
 
     const totalRevenue = filteredInvoices
       .filter(inv => inv.status === "paid")
+      .reduce((sum, inv) => sum + (inv.amount_in_cents / 100), 0)
+    const totalInvoiced = filteredInvoices
       .reduce((sum, inv) => sum + (inv.amount_in_cents / 100), 0)
 
     const paidInvoicesCount = filteredInvoices.filter(inv => inv.status === "paid").length
@@ -114,15 +164,15 @@ export function PaymentDashboard() {
 
     return {
       totalRevenue,
-      monthlyRevenue: totalRevenue, // Simple for now
+      totalInvoiced,
       totalInvoices: filteredInvoices.length,
       paidInvoices: paidInvoicesCount,
       pendingInvoices: pendingInvoicesCount,
       overdueInvoices: 0,
-      totalClients: companies.length, // Placeholder
+      totalClients: clientsData.filter((client) => client.is_active).length,
       revenueGrowth,
     }
-  }, [invoicesData, selectedCompany, companies.length])
+  }, [invoicesData, selectedCompany, clientsData])
 
   const revenueData = useMemo(() => {
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"]
@@ -137,9 +187,9 @@ export function PaymentDashboard() {
 
   const companyRevenue = useMemo(() => {
     const colors = ["#533afd", "#0d9488", "#ea2261", "#f59e0b", "#1c1e54"]
-    return companies.map((company, index) => {
+    return companySummaries.map((company, index) => {
       const companyInvTotal = invoicesData
-        .filter(inv => inv.metadata?.companyId === company.id && inv.status === "paid")
+        .filter(inv => getInvoiceCompanyId(inv) === company.id && inv.status === "paid")
         .reduce((sum, inv) => sum + (inv.amount_in_cents / 100), 0)
         
       return {
@@ -148,12 +198,12 @@ export function PaymentDashboard() {
         color: colors[index % colors.length],
       }
     })
-  }, [companies, invoicesData])
+  }, [companySummaries, invoicesData])
 
   const displayInvoices = useMemo<Invoice[]>(() => {
     const filtered = selectedCompany === "all" 
       ? invoicesData 
-      : invoicesData.filter(inv => inv.metadata?.companyId === selectedCompany)
+      : invoicesData.filter(inv => getInvoiceCompanyId(inv) === selectedCompany)
 
     return filtered.slice(0, 8).map((inv) => ({
       id: inv.id,
@@ -205,7 +255,7 @@ export function PaymentDashboard() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All entities</SelectItem>
-              {companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+              {companySummaries.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
             </SelectContent>
           </Select>
           <Button asChild className="h-10 w-full px-6 font-bold shadow-sm flex gap-2 rounded-md sm:w-auto">
@@ -249,7 +299,7 @@ export function PaymentDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-display-sm font-bold text-ink text-tabular tabular-nums">
-              {loading ? <Loader2 className="h-6 w-6 animate-spin text-ink-mute" /> : formatCurrencyWithSettings(stats.monthlyRevenue)}
+              {loading ? <Loader2 className="h-6 w-6 animate-spin text-ink-mute" /> : formatCurrencyWithSettings(stats.totalInvoiced)}
             </div>
             <p className="text-caption text-ink-mute font-bold mt-3 uppercase tracking-widest flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-primary" />

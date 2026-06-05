@@ -26,8 +26,24 @@ export function useAuth() {
   }, [user])
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged((user) => {
-      setUser(user)
+    const unsubscribe = onAuthStateChanged(async (supabaseUser) => {
+      if (!supabaseUser) {
+        setUser(null)
+        setProfile(null)
+        setLoading(false)
+        return
+      }
+
+      // Fetch profile to get the role
+      const p = await getUserProfile()
+      setProfile(p)
+      
+      // Merge role into user object
+      setUser({
+        ...supabaseUser,
+        role: p?.role || (supabaseUser.email === "admin@stratonally.com" ? "admin" : "user")
+      } as AppUser)
+      
       setLoading(false)
     })
 
@@ -35,8 +51,12 @@ export function useAuth() {
   }, [])
 
   useEffect(() => {
-    refreshProfile()
-  }, [user, refreshProfile])
+    // Already handled in the auth state change effect above
+    // keeping this for explicit refreshes if needed
+    if (user && !profile) {
+      refreshProfile()
+    }
+  }, [user, profile, refreshProfile])
 
   const signUp = async (email: string, password: string, name = "") => {
     const newUser = await signUpWithEmail(email, password, name)

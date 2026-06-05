@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { getSupabaseServerClient, getSupabaseServiceClient } from "@/lib/supabase-server"
 
 function cleanString(value: unknown) {
   return typeof value === "string" ? value.trim() : ""
@@ -24,9 +24,20 @@ async function getAuthenticatedUser(request: NextRequest) {
   return { supabase, user, error }
 }
 
+async function isAdminUser(userId: string, email?: string | null) {
+  const supabase = getSupabaseServiceClient()
+  const { data } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", userId)
+    .maybeSingle()
+
+  return data?.role === "admin" || email === "admin@stratonally.com"
+}
+
 export async function GET(request: NextRequest) {
   try {
-    const { supabase, user, error: authError } = await getAuthenticatedUser(request)
+    const { user, error: authError } = await getAuthenticatedUser(request)
 
     if (authError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -35,10 +46,16 @@ export async function GET(request: NextRequest) {
     const url = new URL(request.url)
     const activeOnly = url.searchParams.get("active") === "true"
 
+    const supabase = getSupabaseServiceClient()
+    const isAdmin = await isAdminUser(user.id, user.email)
+
     let query = supabase
       .from("clients")
       .select("*")
-      .eq("user_id", user.id)
+
+    if (!isAdmin) {
+      query = query.eq("user_id", user.id)
+    }
 
     if (activeOnly) {
       query = query.eq("is_active", true)
