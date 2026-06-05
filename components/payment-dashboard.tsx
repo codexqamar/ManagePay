@@ -32,6 +32,7 @@ import {
   Send,
   Loader2,
   RefreshCw,
+  Share2,
 } from "lucide-react"
 import { useAppStore } from "@/lib/store"
 import { formatCurrency } from "@/lib/currencies"
@@ -39,6 +40,7 @@ import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { getSupabaseBrowserClient } from "@/lib/supabase"
 import type { Invoice as SupabaseInvoice } from "@/lib/supabase-types"
+import { ShareInvoiceDialog } from "@/components/share-invoice-dialog"
 
 interface DashboardStats {
   totalRevenue: number
