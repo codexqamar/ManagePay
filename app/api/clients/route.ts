@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { supabase, user, error: authError } = await getAuthenticatedUser(request)
+    const { user, error: authError } = await getAuthenticatedUser(request)
 
     if (authError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -106,6 +106,7 @@ export async function POST(request: NextRequest) {
       is_active: body.isActive === false ? false : true,
     }
 
+    const supabase = getSupabaseServiceClient()
     const { data, error } = await supabase
       .from("clients")
       .insert(client)
@@ -126,7 +127,7 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const { supabase, user, error: authError } = await getAuthenticatedUser(request)
+    const { user, error: authError } = await getAuthenticatedUser(request)
 
     if (authError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -160,13 +161,19 @@ export async function PUT(request: NextRequest) {
       is_active: body.isActive === false ? false : true,
     }
 
-    const { data, error } = await supabase
+    const supabase = getSupabaseServiceClient()
+    const isAdmin = await isAdminUser(user.id, user.email)
+    let query = supabase
       .from("clients")
       .update(updates)
       .eq("id", id)
-      .eq("user_id", user.id)
       .select()
-      .single()
+
+    if (!isAdmin) {
+      query = query.eq("user_id", user.id)
+    }
+
+    const { data, error } = await query.single()
 
     if (error) {
       console.error("Error updating client:", error)
@@ -182,7 +189,7 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const { supabase, user, error: authError } = await getAuthenticatedUser(request)
+    const { user, error: authError } = await getAuthenticatedUser(request)
 
     if (authError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -195,11 +202,18 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Client id is required" }, { status: 400 })
     }
 
-    const { error } = await supabase
+    const supabase = getSupabaseServiceClient()
+    const isAdmin = await isAdminUser(user.id, user.email)
+    let query = supabase
       .from("clients")
       .delete()
       .eq("id", id)
-      .eq("user_id", user.id)
+
+    if (!isAdmin) {
+      query = query.eq("user_id", user.id)
+    }
+
+    const { error } = await query
 
     if (error) {
       console.error("Error deleting client:", error)
