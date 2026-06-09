@@ -161,7 +161,9 @@ export function InvoicePayment({ invoiceId }: InvoicePaymentProps) {
             <div className="flex flex-col sm:flex-row justify-between gap-8">
               <div className="space-y-4">
                 {company.logoUrl ? (
-                  <img src={company.logoUrl} alt={company.name} className="h-12 w-auto object-contain mb-4" />
+                  <div className="bg-ink p-3 rounded-xl inline-block mb-4 shadow-sm">
+                    <img src={company.logoUrl} alt={company.name} className="h-12 w-auto object-contain" />
+                  </div>
                 ) : (
                   <div className="h-12 w-12 bg-primary/10 rounded-xl flex items-center justify-center mb-4">
                     <Building2 className="h-6 w-6 text-primary" />
@@ -218,8 +220,13 @@ export function InvoicePayment({ invoiceId }: InvoicePaymentProps) {
                   {items.length > 0 ? (
                     items.map((item, index) => (
                       <tr key={item.id || index} className="text-sm">
-                        <td className="py-5 font-medium text-ink">
-                          {item.description || "Service item"}
+                        <td className="py-5">
+                          {item.serviceName && (
+                            <div className="text-[10px] font-black uppercase tracking-widest text-primary mb-0.5">
+                              {item.serviceName}
+                            </div>
+                          )}
+                          <div className="font-medium text-ink">{item.description || "Service item"}</div>
                         </td>
                         <td className="py-5 text-center text-tabular text-ink-mute">
                           {item.quantity || 0}

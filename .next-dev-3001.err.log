@@ -1,0 +1,1 @@
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename 'D:\StratonAlly\Code\ManagePay\.next\cache\webpack\client-development\11.pack.gz_' -> 'D:\StratonAlly\Code\ManagePay\.next\cache\webpack\client-development\11.pack.gz'

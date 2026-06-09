@@ -456,3 +456,65 @@ export async function deleteClientRecord(id: string): Promise<boolean> {
   }
   return true
 }
+
+/* ============================================================
+   INVOICE SERVICES
+   ============================================================ */
+
+import type { InvoiceService, InsertInvoiceService, UpdateInvoiceService } from "@/lib/supabase-types"
+
+export async function getInvoiceServices(): Promise<InvoiceService[]> {
+  const supabase = getSupabaseBrowserClient()
+  const { data, error } = await supabase
+    .from("invoice_services")
+    .select("*")
+    .order("name", { ascending: true })
+
+  if (error) {
+    console.error("getInvoiceServices error:", error.message)
+    return []
+  }
+  return (data ?? []) as InvoiceService[]
+}
+
+export async function createInvoiceService(service: InsertInvoiceService): Promise<InvoiceService | null> {
+  const supabase = getSupabaseBrowserClient()
+  const { data, error } = await supabase
+    .from("invoice_services")
+    .insert(service)
+    .select()
+    .single()
+
+  if (error) {
+    console.error("createInvoiceService error:", error.message)
+    return null
+  }
+  return data as InvoiceService
+}
+
+export async function updateInvoiceService(id: string, values: UpdateInvoiceService): Promise<InvoiceService | null> {
+  const supabase = getSupabaseBrowserClient()
+  const { data, error } = await supabase
+    .from("invoice_services")
+    .update(values)
+    .eq("id", id)
+    .select()
+    .single()
+
+  if (error) {
+    console.error("updateInvoiceService error:", error.message)
+    return null
+  }
+  return data as InvoiceService
+}
+
+export async function deleteInvoiceServiceRecord(id: string): Promise<boolean> {
+  const supabase = getSupabaseBrowserClient()
+  const { error } = await supabase.from("invoice_services").delete().eq("id", id)
+
+  if (error) {
+    console.error("deleteInvoiceServiceRecord error:", error.message)
+    return false
+  }
+  return true
+}

@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { Plus, Trash2 } from "lucide-react";
 
 import { useTheme } from "next-themes";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,45 +15,60 @@ import { Label } from "@/components/ui/label";
 import {
   getUserDisplayName,
   getUserPhotoUrl,
-  onAuthStateChanged,
-  signOutUser,
   updateUserProfile,
-  type AppUser,
 } from "@/lib/auth";
+import { useAuth } from "@/hooks/use-auth";
+import { useAppStore } from "@/lib/store";
+import { 
+  getInvoiceServices, 
+  createInvoiceService, 
+  deleteInvoiceServiceRecord 
+} from "@/lib/database";
 
 export default function SettingsPage() {
   const { theme, setTheme, resolvedTheme } = useTheme();
+  const { invoiceServices, setInvoiceServices } = useAppStore();
+  const { user, loading, logout } = useAuth();
+  
   const [emailReceipts, setEmailReceipts] = useState(true);
   const [mounted, setMounted] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [user, setUser] = useState<AppUser | null>(null);
-  const [loading, setLoading] = useState(true);
   const [tempPhotoURL, setTempPhotoURL] = useState(""); 
   const [saving, setSaving] = useState(false);
+  const [newServiceName, setNewServiceName] = useState("");
+  const [loadingServices, setLoadingServices] = useState(false);
 
   useEffect(() => {
     setMounted(true);
 
-    const unsubscribe = onAuthStateChanged((currentUser) => {
-      setUser(currentUser);
-      if (currentUser) {
-        setName(getUserDisplayName(currentUser));
-        setEmail(currentUser.email || "");
+    if (user) {
+      setName(getUserDisplayName(user));
+      setEmail(user.email || "");
 
-        const savedPhoto = localStorage.getItem(`profilePhoto_${currentUser.id}`);
-        if (savedPhoto) {
-          setTempPhotoURL(savedPhoto);
-        } else {
-          setTempPhotoURL(getUserPhotoUrl(currentUser) || "");
-        }
+      const savedPhoto = localStorage.getItem(`profilePhoto_${user.id}`);
+      if (savedPhoto) {
+        setTempPhotoURL(savedPhoto);
+      } else {
+        setTempPhotoURL(getUserPhotoUrl(user) || "");
       }
-      setLoading(false);
-    });
 
-    return () => unsubscribe();
-  }, []);
+      // Fetch services from Supabase
+      const fetchServices = async () => {
+        setLoadingServices(true);
+        try {
+          const services = await getInvoiceServices();
+          setInvoiceServices(services.map(s => ({ id: s.id, name: s.name })));
+        } catch (error) {
+          console.error("Error fetching services:", error);
+        } finally {
+          setLoadingServices(false);
+        }
+      };
+      fetchServices();
+    }
+  }, [user, setInvoiceServices]);
 
   const isDark = mounted ? (resolvedTheme || theme) === "dark" : false;
 
@@ -87,13 +103,12 @@ export default function SettingsPage() {
 
     setSaving(true);
     try {
-      const updatedUser = await updateUserProfile({
+      await updateUserProfile({
         name,
         email: email !== user.email ? email : undefined,
         photoUrl: tempPhotoURL || undefined,
       });
 
-      setUser(updatedUser);
       setIsEditing(false);
       alert("Profile updated successfully!");
     } catch (error: any) {
@@ -108,11 +123,43 @@ export default function SettingsPage() {
 
   const handleSignOut = async () => {
     try {
-      await signOutUser();
+      await logout();
       router.push("/");
     } catch (error) {
       console.error("Error signing out:", error);
     }
+  };
+
+  const handleAddService = async () => {
+    const serviceName = newServiceName.trim();
+    if (!serviceName) return;
+
+    try {
+      const newService = await createInvoiceService({ name: serviceName, description: null, default_rate: 0 });
+      if (newService) {
+        setInvoiceServices([...invoiceServices, { id: newService.id, name: newService.name }]);
+        setNewServiceName("");
+      }
+    } catch (error) {
+      console.error("Error adding service:", error);
+      alert("Failed to add service. Check console for details.");
+    }
+  };
+
+  const handleDeleteService = async (id: string) => {
+    try {
+      const success = await deleteInvoiceServiceRecord(id);
+      if (success) {
+        setInvoiceServices(invoiceServices.filter(s => s.id !== id));
+      }
+    } catch (error) {
+      console.error("Error deleting service:", error);
+      alert("Failed to delete service.");
+    }
+  };
+
+  const scrollToSection = (sectionId: string) => {
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   if (loading) {
@@ -148,6 +195,15 @@ export default function SettingsPage() {
           <div className="rounded-lg border border-hairline bg-canvas p-1.5 shadow-sm">
             <Button variant="ghost" className="w-full justify-start rounded-md bg-canvas-soft font-bold text-primary">General</Button>
             <Button variant="ghost" className="w-full justify-start rounded-md font-semibold text-ink-mute hover:text-ink">Billing</Button>
+            {user.role === "admin" && (
+              <Button
+                variant="ghost"
+                onClick={() => scrollToSection("invoice-services")}
+                className="w-full justify-start rounded-md font-semibold text-ink-mute hover:text-ink"
+              >
+                Invoice Services
+              </Button>
+            )}
             <Button variant="ghost" className="w-full justify-start rounded-md font-semibold text-ink-mute hover:text-ink">Security</Button>
             <Button variant="ghost" className="w-full justify-start rounded-md font-semibold text-ink-mute hover:text-ink">API Keys</Button>
             <Button variant="ghost" className="w-full justify-start rounded-md font-semibold text-ink-mute hover:text-ink">Members</Button>
@@ -242,6 +298,58 @@ export default function SettingsPage() {
                 </Card>
               </div>
           </section>
+
+          {user.role === "admin" && (
+            <section id="invoice-services" className="scroll-mt-6 space-y-5 rounded-lg border border-hairline bg-canvas p-5 shadow-sm sm:p-6">
+              <div>
+                <h2 className="text-heading-lg font-bold text-ink">Invoice Services</h2>
+                <p className="text-caption font-medium text-ink-mute">Services shown in invoice line item pickers.</p>
+              </div>
+
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Input
+                  value={newServiceName}
+                  onChange={(event) => setNewServiceName(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      handleAddService();
+                    }
+                  }}
+                  placeholder="Service name"
+                  className="h-10 border-hairline font-semibold"
+                />
+                <Button onClick={handleAddService} className="h-10 rounded-md font-bold sm:w-36">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add
+                </Button>
+              </div>
+
+              <div className="rounded-lg border border-hairline bg-canvas-soft">
+                {invoiceServices.length > 0 ? (
+                  <div className="divide-y divide-hairline">
+                    {invoiceServices.map((service) => (
+                      <div key={service.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                        <span className="text-sm font-bold text-ink-secondary">{service.name}</span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteService(service.id)}
+                          className="h-8 w-8 rounded-md text-ink-mute hover:text-ruby"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="px-4 py-6 text-center text-sm font-medium text-ink-mute">
+                    No services added yet.
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
 
           {/* Danger Zone */}
           <section>

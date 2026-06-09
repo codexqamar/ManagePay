@@ -23,6 +23,7 @@ import { useToast } from "@/hooks/use-toast"
 import { InvoicePreview } from "@/components/invoice-preview"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { formatCurrency } from "@/lib/currencies"
+import { getInvoicePaymentUrl } from "@/lib/utils"
 
 interface EmailInvoiceDialogProps {
   invoiceId: string
@@ -53,7 +54,7 @@ export function EmailInvoiceDialog({
   const [isSending, setIsSending] = useState(false)
   const [activeTab, setActiveTab] = useState("compose")
 
-  const paymentUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/pay/${invoiceId}`
+  const paymentUrl = getInvoicePaymentUrl(invoiceId, invoiceData?.company)
 
   const sendEmail = async () => {
     if (!email) {

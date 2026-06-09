@@ -19,6 +19,8 @@ interface InvoicePreviewProps {
     currency: string
     items: Array<{
       id: string
+      serviceId?: string
+      serviceName?: string
       description: string
       quantity: number
       rate: number
@@ -43,7 +45,9 @@ export function InvoicePreview({ invoiceData }: InvoicePreviewProps) {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-start mb-6 sm:mb-8">
           <div className="mb-4 sm:mb-0">
             {company?.logoUrl ? (
-              <img src={company.logoUrl} alt={company.name} className="h-10 w-auto object-contain mb-3" />
+              <div className="bg-ink p-3 rounded-xl inline-block mb-3 shadow-sm">
+                <img src={company.logoUrl} alt={company.name} className="h-10 w-auto object-contain" />
+              </div>
             ) : (
               <h1 className="text-xl sm:text-2xl font-bold text-ink">INVOICE</h1>
             )}
@@ -95,7 +99,14 @@ export function InvoicePreview({ invoiceData }: InvoicePreviewProps) {
             <tbody>
               {items.map((item) => (
                 <tr key={item.id} className="border-b border-hairline">
-                  <td className="py-3 px-2 sm:px-4">{item.description || "-"}</td>
+                  <td className="py-3 px-2 sm:px-4">
+                    {item.serviceName && (
+                      <div className="text-[10px] font-black uppercase tracking-widest text-primary mb-0.5">
+                        {item.serviceName}
+                      </div>
+                    )}
+                    <div className="text-ink font-medium">{item.description || "-"}</div>
+                  </td>
                   <td className="py-3 px-2 sm:px-4 text-right">{item.quantity}</td>
                   <td className="py-3 px-2 sm:px-4 text-right">{formatCurrency(item.rate, currency)}</td>
                   <td className="py-3 px-2 sm:px-4 text-right">{formatCurrency(item.amount, currency)}</td>

@@ -1,0 +1,25 @@
+
+> my-v0-project@0.1.0 dev
+> next dev --hostname 127.0.0.1 --port 3001
+
+   ▲ Next.js 15.2.4
+   - Local:        http://127.0.0.1:3001
+   - Network:      http://127.0.0.1:3001
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 1960ms
+ ○ Compiling / ...
+ ✓ Compiled / in 1995ms (975 modules)
+ GET / 200 in 2582ms
+ ✓ Compiled in 1168ms (456 modules)
+ ✓ Compiled in 393ms (456 modules)
+ ✓ Compiled in 307ms (456 modules)
+ ✓ Compiled in 377ms (456 modules)
+ ✓ Compiled in 399ms (456 modules)
+ ✓ Compiled in 256ms (456 modules)
+ ✓ Compiled in 303ms (456 modules)
+ ✓ Compiled in 273ms (456 modules)
+ ✓ Compiled in 239ms (456 modules)
+ ✓ Compiled in 457ms (456 modules)
+ ✓ Compiled in 509ms (456 modules)

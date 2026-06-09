@@ -14,10 +14,6 @@ import {
   Trash2,
   User,
   History,
-  ArrowUpRight,
-  MoreVertical,
-  Copy,
-  Calendar,
   ExternalLink,
   Share2,
 } from "lucide-react"
@@ -33,15 +29,20 @@ import { Badge } from "@/components/ui/badge"
 import { EmailInvoiceDialog } from "@/components/email-invoice-dialog"
 import { InvoicePreview } from "@/components/invoice-preview"
 import { ShareInvoiceDialog } from "@/components/share-invoice-dialog"
+import { ClientDialog } from "@/components/client-dialog"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/hooks/use-auth"
 import { CURRENCIES, formatCurrency } from "@/lib/currencies"
+import { getInvoicePaymentUrl } from "@/lib/utils"
 import { getSupabaseBrowserClient } from "@/lib/supabase"
+import { getInvoiceServices } from "@/lib/database"
 import type { Client, Invoice } from "@/lib/supabase-types"
 import { useAppStore } from "@/lib/store"
 
 interface InvoiceItem {
   id: string
+  serviceId: string
+  serviceName?: string
   description: string
   quantity: number
   rate: number
@@ -53,6 +54,7 @@ const generateInvoiceNumber = () => `INV-${Date.now().toString().slice(-6)}`
 function createLineItem(): InvoiceItem {
   return {
     id: crypto.randomUUID(),
+    serviceId: "",
     description: "",
     quantity: 1,
     rate: 0,
@@ -81,7 +83,7 @@ function getInvoiceErrorMessage(error: unknown) {
 
 export function InvoiceGenerator() {
   const { toast } = useToast()
-  const { companies, settings, setCompanies } = useAppStore()
+  const { companies, settings, invoiceServices, setCompanies, setInvoiceServices } = useAppStore()
 
   const [clients, setClients] = useState<Client[]>([])
   const [invoices, setInvoices] = useState<Invoice[]>([])
@@ -128,9 +130,19 @@ export function InvoiceGenerator() {
     }
   }, [setCompanies])
 
+  const fetchServices = useCallback(async () => {
+    try {
+      const services = await getInvoiceServices()
+      setInvoiceServices(services.map(s => ({ id: s.id, name: s.name })))
+    } catch (error) {
+      console.error("Failed to fetch invoice services:", error)
+    }
+  }, [setInvoiceServices])
+
   useEffect(() => {
     fetchCompanies()
-  }, [fetchCompanies])
+    fetchServices()
+  }, [fetchCompanies, fetchServices])
   const [selectedCompanyId, setSelectedCompanyId] = useState("")
   const [selectedClientId, setSelectedClientId] = useState("")
   const [invoiceNumber, setInvoiceNumber] = useState("") // Start empty to avoid hydration mismatch
@@ -143,6 +155,7 @@ export function InvoiceGenerator() {
   const [isSaving, setIsSaving] = useState(false)
   const [savedInvoice, setSavedInvoice] = useState<Invoice | null>(null)
   const [activeTab, setActiveTab] = useState("generator")
+  const [clientDialogOpen, setClientDialogOpen] = useState(false)
 
   const selectedCompany = companies.find((company) => company.id === selectedCompanyId) || null
   const selectedClient = clients.find((client) => client.id === selectedClientId) || null
@@ -167,7 +180,9 @@ export function InvoiceGenerator() {
 
       // Build queries based on role
       let clientsQuery = supabase.from("clients").select("*").eq("is_active", true).order("name")
-      let invoicesQuery = supabase.from("invoices").select("*").order("created_at", { ascending: false })
+      let invoicesQuery = supabase.from("invoices")
+        .select("*, seller:profiles(full_name, email)")
+        .order("created_at", { ascending: false })
 
       if (!isAdmin) {
         clientsQuery = clientsQuery.eq("user_id", user.id)
@@ -249,6 +264,28 @@ export function InvoiceGenerator() {
     setSavedInvoice(null)
   }
 
+  const updateItemService = (id: string, serviceId: string) => {
+    const service = invoiceServices.find((item) => item.id === serviceId) || null
+    const serviceNames = invoiceServices.map((item) => item.name.toLowerCase())
+
+    setItems((current) =>
+      current.map((item) => {
+        if (item.id !== id) return item
+
+        const shouldReplaceDescription =
+          !item.description.trim() || serviceNames.includes(item.description.trim().toLowerCase())
+
+        return {
+          ...item,
+          serviceId,
+          serviceName: service?.name || "",
+          description: service && shouldReplaceDescription ? service.name : item.description,
+        }
+      }),
+    )
+    setSavedInvoice(null)
+  }
+
   const resetInvoice = () => {
     setSelectedClientId("")
     setInvoiceNumber(generateInvoiceNumber())
@@ -256,6 +293,17 @@ export function InvoiceGenerator() {
     setItems([createLineItem()])
     setNotes("")
     setPreviewInvoice(false)
+    setSavedInvoice(null)
+  }
+
+  const handleClientSaved = (client: Client) => {
+    if (client.is_active) {
+      setClients((current) => {
+        const withoutSavedClient = current.filter((item) => item.id !== client.id)
+        return [...withoutSavedClient, client].sort((a, b) => a.name.localeCompare(b.name))
+      })
+      setSelectedClientId(client.id)
+    }
     setSavedInvoice(null)
   }
 
@@ -390,7 +438,6 @@ export function InvoiceGenerator() {
                         <p className="text-ink-mute">{selectedCompany.email}</p>
                       </div>
                     )}
-                    <Link href="/companies" className="text-xs font-bold text-primary hover:underline">Manage companies</Link>
                   </CardContent>
                 </Card>
 
@@ -431,7 +478,13 @@ export function InvoiceGenerator() {
                         <p className="text-ink-mute">{selectedClient.email}</p>
                       </div>
                     )}
-                    <Link href="/clients" className="text-xs font-bold text-primary hover:underline">Manage clients</Link>
+                    <button
+                      type="button"
+                      className="text-xs font-bold text-primary hover:underline"
+                      onClick={() => setClientDialogOpen(true)}
+                    >
+                      Add new client
+                    </button>
                   </CardContent>
                 </Card>
               </div>
@@ -472,17 +525,31 @@ export function InvoiceGenerator() {
 
                   <div className="space-y-4">
                     <div className="grid grid-cols-12 gap-3 px-1 text-micro-cap font-black text-ink-mute uppercase tracking-widest">
-                      <span className="col-span-12 md:col-span-5">Description</span>
-                      <span className="col-span-4 md:col-span-2">Qty</span>
+                      <span className="col-span-12 md:col-span-3">Service</span>
+                      <span className="col-span-12 md:col-span-4">Description</span>
+                      <span className="col-span-4 md:col-span-1">Qty</span>
                       <span className="col-span-4 md:col-span-2">Rate</span>
                       <span className="col-span-3 md:col-span-2 text-right">Amount</span>
                     </div>
                     {items.map((item) => (
                       <div key={item.id} className="grid grid-cols-12 items-end gap-3">
-                        <div className="col-span-12 md:col-span-5">
+                        <div className="col-span-12 md:col-span-3">
+                          <Select value={item.serviceId || "custom"} onValueChange={(value) => updateItemService(item.id, value === "custom" ? "" : value)}>
+                            <SelectTrigger className="h-11 w-full">
+                              <SelectValue placeholder="Select service" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="custom">Custom</SelectItem>
+                              {invoiceServices.map((service) => (
+                                <SelectItem key={service.id} value={service.id}>{service.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="col-span-12 md:col-span-4">
                           <Input value={item.description} onChange={(e) => updateItem(item.id, "description", e.target.value)} placeholder="Service description" className="h-11" />
                         </div>
-                        <div className="col-span-4 md:col-span-2">
+                        <div className="col-span-4 md:col-span-1">
                           <Input type="number" min="0" value={item.quantity} onChange={(e) => updateItem(item.id, "quantity", Number(e.target.value) || 0)} className="h-11 text-tabular" />
                         </div>
                         <div className="col-span-4 md:col-span-2">
@@ -620,7 +687,7 @@ export function InvoiceGenerator() {
                 <div className="flex flex-col items-center justify-center py-20 text-ink-mute">
                   <FileText className="h-12 w-12 mb-4 opacity-20" />
                   <p className="font-medium">No invoices found</p>
-                  <Button variant="link" onClick={() => setActiveTab("generator")} className="mt-2">Create your first invoice</Button>
+                  <Button variant="ghost" onClick={() => setActiveTab("generator")} className="mt-2 text-primary underline">Create your first invoice</Button>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -629,55 +696,73 @@ export function InvoiceGenerator() {
                       <tr className="border-b border-hairline bg-canvas-soft text-micro-cap font-black text-ink-mute uppercase tracking-widest">
                         <th className="px-6 py-4">Reference</th>
                         <th className="px-6 py-4">Client</th>
-                        <th className="px-6 py-4">Date</th>
+                        <th className="px-6 py-4">Entity</th>
+                        <th className="px-6 py-4">Created By</th>
+                        <th className="px-6 py-4">Date & Time</th>
                         <th className="px-6 py-4">Amount</th>
                         <th className="px-6 py-4">Status</th>
                         <th className="px-6 py-4 text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-hairline">
-                      {invoices.map((invoice) => (
-                        <tr key={invoice.id} className="hover:bg-canvas-soft transition-colors group">
-                          <td className="px-6 py-4 font-mono font-bold text-ink">{invoice.invoice_number}</td>
-                          <td className="px-6 py-4">
-                            <div className="font-bold text-ink">{invoice.client_email}</div>
-                            <div className="text-xs text-ink-mute">{invoice.description}</div>
-                          </td>
-                          <td className="px-6 py-4 text-sm text-ink-mute">
-                            {new Date(invoice.created_at).toLocaleDateString()}
-                          </td>
-                          <td className="px-6 py-4 font-bold text-ink">
-                            {formatCurrency(invoice.amount_in_cents / 100, invoice.currency)}
-                          </td>
-                          <td className="px-6 py-4">
-                            <Badge variant={invoice.status === 'paid' ? 'success' : 'secondary'} className="rounded-md capitalize">
-                              {invoice.status}
-                            </Badge>
-                          </td>
-                          <td className="px-6 py-4 text-right">
-                            <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <ShareInvoiceDialog
-                                invoiceId={invoice.id}
-                                invoiceNumber={invoice.invoice_number}
-                                amount={invoice.amount_in_cents / 100}
-                                currency={invoice.currency}
-                                clientEmail={invoice.client_email}
-                                invoiceData={invoice.metadata} // Pass metadata for PDF generation
-                                trigger={
-                                  <Button variant="ghost" size="icon" className="h-8 w-8 text-ink-mute hover:text-primary">
-                                    <Share2 className="h-4 w-4" />
-                                  </Button>
-                                }
-                              />
-                              <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-ink-mute hover:text-primary">
-                                <Link href={`/pay/${invoice.id}`} target="_blank">
-                                  <ExternalLink className="h-4 w-4" />
-                                </Link>
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
+                      {invoices.map((invoice) => {
+                        const seller = (invoice as any).seller;
+                        const companyName = (invoice.metadata as any)?.company?.name || "N/A";
+                        const sellerName = seller?.full_name || seller?.email || "Unknown";
+                        const createdAt = new Date(invoice.created_at);
+                        
+                        return (
+                          <tr key={invoice.id} className="hover:bg-canvas-soft transition-colors group">
+                            <td className="px-6 py-4 font-mono font-bold text-ink">{invoice.invoice_number}</td>
+                            <td className="px-6 py-4">
+                              <div className="font-bold text-ink">{invoice.client_email}</div>
+                              <div className="text-[10px] text-ink-mute uppercase tracking-wider font-semibold">{invoice.description}</div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <Badge variant="outline" className="bg-canvas-soft text-ink-secondary border-hairline font-bold text-[10px]">
+                                {companyName}
+                              </Badge>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="text-sm font-bold text-ink-secondary">{sellerName}</div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="text-sm font-bold text-ink">{createdAt.toLocaleDateString()}</div>
+                              <div className="text-[10px] text-ink-mute font-medium">{createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                            </td>
+                            <td className="px-6 py-4 font-bold text-ink tabular-nums">
+                              {formatCurrency(invoice.amount_in_cents / 100, invoice.currency)}
+                            </td>
+                            <td className="px-6 py-4">
+                              <Badge variant={invoice.status === 'paid' ? 'success' : 'secondary'} className="rounded-md capitalize">
+                                {invoice.status}
+                              </Badge>
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <ShareInvoiceDialog
+                                  invoiceId={invoice.id}
+                                  invoiceNumber={invoice.invoice_number}
+                                  amount={invoice.amount_in_cents / 100}
+                                  currency={invoice.currency}
+                                  clientEmail={invoice.client_email}
+                                  invoiceData={invoice.metadata} // Pass metadata for PDF generation
+                                  trigger={
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-ink-mute hover:text-primary">
+                                      <Share2 className="h-4 w-4" />
+                                    </Button>
+                                  }
+                                />
+                                <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-ink-mute hover:text-primary">
+                                  <Link href={getInvoicePaymentUrl(invoice.id, invoice.metadata?.company)} target="_blank">
+                                    <ExternalLink className="h-4 w-4" />
+                                  </Link>
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -686,6 +771,11 @@ export function InvoiceGenerator() {
           </Card>
         </TabsContent>
       </Tabs>
+      <ClientDialog
+        open={clientDialogOpen}
+        onOpenChange={setClientDialogOpen}
+        onSaved={handleClientSaved}
+      />
     </div>
   )
 }

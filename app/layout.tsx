@@ -24,21 +24,60 @@ export default function RootLayout({
         <Script id="clean-extension-attributes" strategy="beforeInteractive">
           {`
             (() => {
+              const extensionAttributeNames = new Set([
+                "cz-shortcut-listen",
+                "data-gr-ext-installed",
+                "data-new-gr-c-s-check-loaded"
+              ]);
+
               const clean = (element) => {
                 for (const attribute of Array.from(element.attributes || [])) {
                   if (
                     attribute.name.startsWith("bis_") ||
                     attribute.name.startsWith("__processed_") ||
-                    attribute.name === "cz-shortcut-listen"
+                    extensionAttributeNames.has(attribute.name)
                   ) {
                     element.removeAttribute(attribute.name);
                   }
                 }
               };
 
-              clean(document.documentElement);
-              if (document.body) clean(document.body);
-              document.querySelectorAll("*").forEach(clean);
+              const cleanTree = (root = document) => {
+                clean(document.documentElement);
+                if (document.body) clean(document.body);
+
+                if ("querySelectorAll" in root) {
+                  root.querySelectorAll("*").forEach(clean);
+                }
+              };
+
+              cleanTree();
+
+              const observer = new MutationObserver((mutations) => {
+                for (const mutation of mutations) {
+                  if (mutation.type === "attributes") {
+                    clean(mutation.target);
+                  }
+
+                  for (const node of mutation.addedNodes) {
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                      clean(node);
+                      cleanTree(node);
+                    }
+                  }
+                }
+              });
+
+              observer.observe(document.documentElement, {
+                attributes: true,
+                childList: true,
+                subtree: true
+              });
+
+              window.addEventListener("load", () => {
+                cleanTree();
+                window.setTimeout(() => observer.disconnect(), 3000);
+              });
             })();
           `}
         </Script>

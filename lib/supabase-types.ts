@@ -106,3 +106,15 @@ export interface Client {
 
 export type InsertClient = Omit<Client, "id" | "created_at" | "updated_at">
 export type UpdateClient = Partial<Omit<Client, "id" | "user_id" | "created_at" | "updated_at">>
+
+export interface InvoiceService {
+  id: string
+  name: string
+  description: string | null
+  default_rate: number | null // in cents
+  created_at: string
+  updated_at: string
+}
+
+export type InsertInvoiceService = Omit<InvoiceService, "id" | "created_at" | "updated_at">
+export type UpdateInvoiceService = Partial<Omit<InvoiceService, "id" | "created_at" | "updated_at">>

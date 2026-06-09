@@ -36,7 +36,7 @@ import {
 } from "lucide-react"
 import { useAppStore } from "@/lib/store"
 import { formatCurrency } from "@/lib/currencies"
-import { cn } from "@/lib/utils"
+import { cn, getInvoicePaymentUrl } from "@/lib/utils"
 import Link from "next/link"
 import { getSupabaseBrowserClient } from "@/lib/supabase"
 import type { Client as SupabaseClient, Company as SupabaseCompany, Invoice as SupabaseInvoice } from "@/lib/supabase-types"
@@ -478,7 +478,7 @@ export function PaymentDashboard() {
                         }
                       />
                       <Button asChild variant="ghost" size="icon" className="h-9 w-9 text-ink-mute hover:text-primary hover:bg-canvas rounded-md shadow-xs border border-transparent hover:border-hairline transition-all">
-                        <Link href={`/pay/${invoice.id}`} target="_blank">
+                        <Link href={getInvoicePaymentUrl(invoice.id, invoicesData.find(inv => inv.id === invoice.id)?.metadata?.company)} target="_blank">
                           <Eye className="h-4 w-4" />
                         </Link>
                       </Button>

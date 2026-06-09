@@ -16,6 +16,7 @@ import { Share2, Copy, Mail, MessageSquare, QrCode, Download, LinkIcon, FileText
 import { useToast } from "@/hooks/use-toast"
 import { QRCodeCanvas } from "qrcode.react"
 import { formatCurrency } from "@/lib/currencies"
+import { getInvoicePaymentUrl } from "@/lib/utils"
 import html2canvas from "html2canvas"
 import jsPDF from "jspdf"
 
@@ -46,24 +47,7 @@ export function ShareInvoiceDialog({
   const [activeTab, setActiveTab] = useState("link")
   const [isExporting, setIsExporting] = useState(false)
 
-  // 🔑 Dynamic Payment URL based on company settings
-  const getPaymentUrl = () => {
-    if (invoiceData?.company?.paymentBaseUrl) {
-      // Ensure the URL has a protocol
-      const baseUrl = invoiceData.company.paymentBaseUrl.startsWith('http') 
-        ? invoiceData.company.paymentBaseUrl 
-        : `https://${invoiceData.company.paymentBaseUrl}`
-      
-      // Remove trailing slash if exists
-      const sanitizedBase = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl
-      return `${sanitizedBase}/pay/${invoiceId}`
-    }
-    
-    // Fallback to current origin
-    return `${typeof window !== "undefined" ? window.location.origin : ""}/pay/${invoiceId}`
-  }
-
-  const paymentUrl = getPaymentUrl()
+  const paymentUrl = getInvoicePaymentUrl(invoiceId, invoiceData?.company)
   const shortUrl = `pay.ly/${invoiceId.slice(-8)}`
 
   const downloadPDF = async () => {
@@ -96,7 +80,9 @@ export function ShareInvoiceDialog({
           <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 60px; border-bottom: 2px solid #533afd; padding-bottom: 30px;">
             <div>
               ${invoiceData.company?.logoUrl ? 
-                `<img src="${invoiceData.company.logoUrl}" style="height: 60px; width: auto; object-fit: contain; margin-bottom: 20px; display: block;" />` : 
+                `<div style="background: #1c1e54; padding: 12px; border-radius: 12px; display: inline-block; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                   <img src="${invoiceData.company.logoUrl}" style="height: 50px; width: auto; object-fit: contain; display: block;" />
+                 </div>` : 
                 `<h1 style="font-size: 42px; font-weight: 800; margin: 0; color: #533afd; letter-spacing: -1px;">INVOICE</h1>`
               }
               <p style="font-size: 16px; color: #64748d; margin: 5px 0 0 0; font-family: monospace; font-weight: 600;">#${invoiceNumber}</p>
@@ -144,7 +130,10 @@ export function ShareInvoiceDialog({
             <tbody>
               ${(invoiceData.items || []).map((item: any) => `
                 <tr style="border-bottom: 1px solid #f1f5f9;">
-                  <td style="padding: 20px; font-size: 14px; font-weight: 600; color: #1e293b;">${item.description}</td>
+                  <td style="padding: 20px;">
+                    ${item.serviceName ? `<p style="font-size: 9px; font-weight: 800; color: #533afd; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 4px 0;">${item.serviceName}</p>` : ''}
+                    <p style="font-size: 14px; font-weight: 600; color: #1e293b; margin: 0;">${item.description}</p>
+                  </td>
                   <td style="padding: 20px; font-size: 14px; text-align: center; color: #64748d; font-weight: 500;">${item.quantity}</td>
                   <td style="padding: 20px; font-size: 14px; text-align: right; color: #64748d; font-weight: 500;">${formatCurrency(item.rate, currency)}</td>
                   <td style="padding: 20px; font-size: 14px; text-align: right; font-weight: 700; color: #0f172a;">${formatCurrency(item.amount, currency)}</td>

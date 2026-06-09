@@ -30,6 +30,11 @@ interface AppSettings {
   processingFeeFixed: number
 }
 
+export interface InvoiceService {
+  id: string
+  name: string
+}
+
 // ✅ Fixed Draft interface to match actual usage
 export interface Draft {
   id: string  // Always string, never undefined
@@ -71,6 +76,7 @@ interface Transaction {
 interface AppState {
   companies: Company[]
   settings: AppSettings
+  invoiceServices: InvoiceService[]
    transactions: Transaction[]
 
   // Company actions
@@ -82,6 +88,9 @@ interface AppState {
 
   // Settings actions
   updateSettings: (settings: Partial<AppSettings>) => void
+  setInvoiceServices: (services: InvoiceService[]) => void
+  addInvoiceService: (name: string) => void
+  deleteInvoiceService: (id: string) => void
 
 // Transaction actions
   addTransaction: (txn: Transaction) => void
@@ -97,6 +106,12 @@ export const useAppStore = create<AppState>()(
         processingFeeRate: 0.029, // 2.9%
         processingFeeFixed: 0.2,
       },
+      invoiceServices: [
+        { id: "consulting", name: "Consulting" },
+        { id: "development", name: "Development" },
+        { id: "design", name: "Design" },
+        { id: "support", name: "Support" },
+      ],
 
       // ✅ Company actions
       setCompanies: (companies) => set({ companies }),
@@ -150,11 +165,39 @@ addTransaction: (txn) => {
           settings: { ...state.settings, ...newSettings },
         }))
       },
+      setInvoiceServices: (services) => set({ invoiceServices: services }),
+      addInvoiceService: (name) => {
+        const trimmedName = name.trim()
+        if (!trimmedName) return
+
+        set((state) => {
+          const duplicate = state.invoiceServices.some(
+            (service) => service.name.toLowerCase() === trimmedName.toLowerCase(),
+          )
+          if (duplicate) return state
+
+          return {
+            invoiceServices: [
+              ...state.invoiceServices,
+              {
+                id: crypto.randomUUID(),
+                name: trimmedName,
+              },
+            ],
+          }
+        })
+      },
+      deleteInvoiceService: (id) => {
+        set((state) => ({
+          invoiceServices: state.invoiceServices.filter((service) => service.id !== id),
+        }))
+      },
     }),
     {
       name: "payment-terminal-storage", // persisted key in localStorage
       partialize: (state) => ({
         settings: state.settings,
+        invoiceServices: state.invoiceServices,
         transactions: state.transactions,
         // companies are now handled via DB
       }),
