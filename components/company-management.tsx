@@ -23,6 +23,7 @@ import { Building2, Plus, Edit, Trash2, Settings, CreditCard, BarChart3, Users, 
 import { useToast } from "@/hooks/use-toast"
 import { useAppStore } from "@/lib/store"
 import { formatCurrency } from "@/lib/currencies"
+import { cn } from "@/lib/utils"
 import { getSupabaseBrowserClient } from "@/lib/supabase"
 import { useAuth } from "@/hooks/use-auth"
 
