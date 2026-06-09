@@ -13,7 +13,39 @@ import { getSupabaseBrowserClient } from "@/lib/supabase"
 import { cn } from "@/lib/utils"
 import type { Client } from "@/lib/supabase-types"
 import { useAuth } from "@/hooks/use-auth"
-import { ClientDialog, getClientErrorMessage, getSignedInUserId } from "@/components/client-dialog"
+import { ClientDialog, getClientErrorMessage } from "@/components/client-dialog"
+
+async function getAccessToken() {
+  const supabase = getSupabaseBrowserClient()
+  const {
+    data: { session },
+    error,
+  } = await supabase.auth.getSession()
+
+  if (error || !session?.access_token) {
+    throw new Error("Please sign in again to manage clients.")
+  }
+
+  return session.access_token
+}
+
+async function fetchClientApi(path: string, init: RequestInit = {}) {
+  const token = await getAccessToken()
+  const headers = new Headers(init.headers)
+  headers.set("Authorization", `Bearer ${token}`)
+
+  const response = await fetch(path, {
+    ...init,
+    headers,
+  })
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => null)
+    throw new Error(body?.error || "Client operation failed.")
+  }
+
+  return response
+}
 
 export function ClientManagement() {
   const { toast } = useToast()
@@ -54,25 +86,7 @@ export function ClientManagement() {
 
     setLoading(true)
     try {
-      const supabase = getSupabaseBrowserClient()
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-
-      if (!session?.access_token) {
-        throw new Error("Please sign in again to manage clients.")
-      }
-
-      const response = await fetch("/api/clients", {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      })
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch clients")
-      }
-
+      const response = await fetchClientApi("/api/clients")
       setClients((await response.json()) as Client[])
     } catch (error) {
       toast({
@@ -111,19 +125,23 @@ export function ClientManagement() {
   const toggleClientStatus = async (client: Client) => {
     const nextValue = !client.is_active
     try {
-      const supabase = getSupabaseBrowserClient()
-      const userId = await getSignedInUserId()
-      const { data, error } = await supabase
-        .from("clients")
-        .update({ is_active: nextValue })
-        .eq("id", client.id)
-        .eq("user_id", userId)
-        .select()
-        .single()
-
-      if (error) {
-        throw new Error(error.message)
-      }
+      const response = await fetchClientApi("/api/clients", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: client.id,
+          name: client.name,
+          email: client.email,
+          companyName: client.company_name,
+          phone: client.phone,
+          address: client.address,
+          notes: client.notes,
+          isActive: nextValue,
+        }),
+      })
+      const data = (await response.json()) as Client
 
       setClients((current) =>
         current.map((item) => (item.id === client.id ? data : item)),
@@ -146,17 +164,9 @@ export function ClientManagement() {
     if (!confirmed) return
 
     try {
-      const supabase = getSupabaseBrowserClient()
-      const userId = await getSignedInUserId()
-      const { error } = await supabase
-        .from("clients")
-        .delete()
-        .eq("id", client.id)
-        .eq("user_id", userId)
-
-      if (error) {
-        throw new Error(error.message)
-      }
+      await fetchClientApi(`/api/clients?id=${encodeURIComponent(client.id)}`, {
+        method: "DELETE",
+      })
 
       setClients((current) => current.filter((item) => item.id !== client.id))
       toast({
