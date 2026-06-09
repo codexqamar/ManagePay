@@ -41,6 +41,7 @@ function companyPayload(body: any) {
     logo_url: cleanNullableString(body.logoUrl),
     payment_base_url: cleanNullableString(body.paymentBaseUrl),
     tax_id: cleanNullableString(body.taxId),
+    logo_has_dark_bg: typeof body.logoHasDarkBg === 'boolean' ? body.logoHasDarkBg : false,
   }
 }
 

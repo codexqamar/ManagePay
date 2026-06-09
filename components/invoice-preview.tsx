@@ -2,6 +2,7 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { formatCurrency } from "@/lib/currencies"
 import { format } from "date-fns"
+import { cn } from "@/lib/utils"
 
 interface InvoicePreviewProps {
   invoiceData: {
@@ -45,7 +46,10 @@ export function InvoicePreview({ invoiceData }: InvoicePreviewProps) {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-start mb-6 sm:mb-8">
           <div className="mb-4 sm:mb-0">
             {company?.logoUrl ? (
-              <div className="bg-ink p-3 rounded-xl inline-block mb-3 shadow-sm">
+              <div className={cn(
+                "p-3 rounded-xl inline-block mb-3 shadow-md transition-colors",
+                company.logoHasDarkBg ? "bg-ink" : "bg-transparent"
+              )}>
                 <img src={company.logoUrl} alt={company.name} className="h-10 w-auto object-contain" />
               </div>
             ) : (
@@ -54,11 +58,11 @@ export function InvoicePreview({ invoiceData }: InvoicePreviewProps) {
             <p className="text-ink-mute text-sm">#{invoiceNumber}</p>
           </div>
           {company && (
-            <div className="text-left sm:text-right">
-              <h2 className="text-lg font-semibold text-ink">{company.name}</h2>
-              <p className="text-sm text-ink-secondary">{company.address}</p>
-              <p className="text-sm text-ink-secondary">{company.email}</p>
-              {company.phone && <p className="text-sm text-ink-secondary">{company.phone}</p>}
+            <div className="text-left sm:text-right mt-4 sm:mt-0">
+              <h2 className="text-lg font-bold text-ink">{company?.name || "Company Name"}</h2>
+              <p className="text-ink-mute text-sm">{company?.email}</p>
+              {company?.phone && <p className="text-ink-mute text-sm">{company.phone}</p>}
+              <p className="text-ink-mute text-xs whitespace-pre-line mt-1">{company?.address}</p>
             </div>
           )}
         </div>

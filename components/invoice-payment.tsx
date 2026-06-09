@@ -9,6 +9,7 @@ import { Building2, Mail, Calendar, CheckCircle, Lock, FileText, ArrowLeft } fro
 import { useToast } from "@/hooks/use-toast"
 import { BackButton } from "@/components/ui/back-button"
 import { formatCurrency } from "@/lib/currencies"
+import { cn } from "@/lib/utils"
 import type { Invoice } from "@/lib/supabase-types"
 import { StripePaymentForm } from "@/components/stripe-payment-form"
 import { useSearchParams } from "next/navigation"
@@ -161,7 +162,10 @@ export function InvoicePayment({ invoiceId }: InvoicePaymentProps) {
             <div className="flex flex-col sm:flex-row justify-between gap-8">
               <div className="space-y-4">
                 {company.logoUrl ? (
-                  <div className="bg-ink p-3 rounded-xl inline-block mb-4 shadow-sm">
+                  <div className={cn(
+                    "p-3 rounded-xl inline-block mb-4 shadow-md transition-colors",
+                    (company as any).logoHasDarkBg ? "bg-ink" : "bg-transparent"
+                  )}>
                     <img src={company.logoUrl} alt={company.name} className="h-12 w-auto object-contain" />
                   </div>
                 ) : (
@@ -172,6 +176,7 @@ export function InvoicePayment({ invoiceId }: InvoicePaymentProps) {
                 <div>
                   <h2 className="text-2xl font-bold text-ink">{company.name}</h2>
                   <p className="text-ink-mute text-sm">{company.email}</p>
+                  {company.phone && <p className="text-ink-mute text-sm">{company.phone}</p>}
                   <p className="text-ink-mute text-sm whitespace-pre-line mt-1">{company.address}</p>
                 </div>
               </div>

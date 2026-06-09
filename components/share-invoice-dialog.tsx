@@ -80,7 +80,7 @@ export function ShareInvoiceDialog({
           <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 60px; border-bottom: 2px solid #533afd; padding-bottom: 30px;">
             <div>
               ${invoiceData.company?.logoUrl ? 
-                `<div style="background: #1c1e54; padding: 12px; border-radius: 12px; display: inline-block; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                `<div style="background: ${invoiceData.company.logoHasDarkBg ? '#0d253d' : 'transparent'}; padding: 12px; border-radius: 12px; display: inline-block; margin-bottom: 20px; box-shadow: ${invoiceData.company.logoHasDarkBg ? '0 4px 6px rgba(0,0,0,0.1)' : 'none'};">
                    <img src="${invoiceData.company.logoUrl}" style="height: 50px; width: auto; object-fit: contain; display: block;" />
                  </div>` : 
                 `<h1 style="font-size: 42px; font-weight: 800; margin: 0; color: #533afd; letter-spacing: -1px;">INVOICE</h1>`
@@ -88,9 +88,10 @@ export function ShareInvoiceDialog({
               <p style="font-size: 16px; color: #64748d; margin: 5px 0 0 0; font-family: monospace; font-weight: 600;">#${invoiceNumber}</p>
             </div>
             <div style="text-align: right;">
-              <h2 style="font-size: 20px; font-weight: 700; margin: 0;">${invoiceData.company?.name || 'Company'}</h2>
-              <p style="font-size: 14px; color: #64748d; margin: 4px 0;">${invoiceData.company?.email || ''}</p>
-              <p style="font-size: 12px; color: #94a3b8; margin: 0; max-width: 250px; line-height: 1.4;">${invoiceData.company?.address || ''}</p>
+              <h2 style="font-size: 24px; font-weight: 700; color: #1e293b; margin: 0 0 5px 0;">${invoiceData.company?.name || 'Company Name'}</h2>
+              <p style="font-size: 14px; color: #64748d; margin: 0 0 3px 0;">${invoiceData.company?.email || ''}</p>
+              ${invoiceData.company?.phone ? `<p style="font-size: 14px; color: #64748d; margin: 0 0 3px 0;">${invoiceData.company.phone}</p>` : ''}
+              <p style="font-size: 14px; color: #64748d; margin: 0; white-space: pre-line;">${invoiceData.company?.address || ''}</p>
             </div>
           </div>
           

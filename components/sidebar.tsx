@@ -163,6 +163,14 @@ export function Sidebar() {
                       New Invoice
                     </Button>
                   </Link>
+                  {isAdmin && (
+                    <Link href="/companies" onClick={() => setIsOpen(false)}>
+                      <Button size="sm" variant="ghost" className="h-9 w-full justify-start gap-2 rounded-md px-3 text-xs font-bold text-ink-secondary hover:text-primary">
+                        <Building2 className="h-3.5 w-3.5" />
+                        Add Company
+                      </Button>
+                    </Link>
+                  )}
                   <Link href="/terminal" onClick={() => setIsOpen(false)}>
                     <Button size="sm" variant="ghost" className="h-9 w-full justify-start gap-2 rounded-md px-3 text-xs font-bold text-ink-secondary hover:text-primary">
                       <CreditCard className="h-3.5 w-3.5" />

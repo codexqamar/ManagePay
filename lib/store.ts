@@ -10,8 +10,9 @@ interface Company {
   address: string
   phone?: string
   website?: string
-  logoUrl?: string
-  paymentBaseUrl?: string
+  logoUrl: string
+  logoHasDarkBg: boolean
+  paymentBaseUrl: string
   taxId?: string
   stripeAccountId?: string
   isActive: boolean

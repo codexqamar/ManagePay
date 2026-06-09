@@ -18,6 +18,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { Switch } from "@/components/ui/switch"
 import { Building2, Plus, Edit, Trash2, Settings, CreditCard, BarChart3, Users, Upload, X, Globe, Phone, MapPin, Hash, Link as LinkIcon, Loader2, Mail, ShieldAlert } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useAppStore } from "@/lib/store"
@@ -28,7 +29,7 @@ import { useAuth } from "@/hooks/use-auth"
 export function CompanyManagement() {
   const { toast } = useToast()
   const { user, loading: authLoading } = useAuth()
-  const isAdmin = user?.role === "admin"
+  const isAdmin = user?.role === "admin" || user?.email === "admin@stratonally.com"
   
   const { companies, settings, setCompanies } = useAppStore()
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
@@ -43,6 +44,7 @@ export function CompanyManagement() {
     phone: "",
     website: "",
     logoUrl: "",
+    logoHasDarkBg: false,
     paymentBaseUrl: "",
     taxId: "",
   })
@@ -92,6 +94,7 @@ export function CompanyManagement() {
         phone: c.phone || "",
         website: c.website || "",
         logoUrl: c.logo_url || "",
+        logoHasDarkBg: c.logo_has_dark_bg || false,
         paymentBaseUrl: c.payment_base_url || "",
         taxId: c.tax_id || "",
         stripeAccountId: c.stripe_account_id || "",
@@ -170,6 +173,7 @@ export function CompanyManagement() {
         phone: formData.phone,
         website: formData.website,
         logoUrl: formData.logoUrl,
+        logoHasDarkBg: formData.logoHasDarkBg,
         paymentBaseUrl: formData.paymentBaseUrl,
         taxId: formData.taxId,
       }
@@ -217,6 +221,7 @@ export function CompanyManagement() {
       phone: "",
       website: "",
       logoUrl: "",
+      logoHasDarkBg: false,
       paymentBaseUrl: "",
       taxId: "",
     })
@@ -232,6 +237,7 @@ export function CompanyManagement() {
       phone: company.phone || "",
       website: company.website || "",
       logoUrl: company.logoUrl || "",
+      logoHasDarkBg: company.logoHasDarkBg || false,
       paymentBaseUrl: company.paymentBaseUrl || "",
       taxId: company.taxId || "",
     })
@@ -341,12 +347,12 @@ export function CompanyManagement() {
         {isAdmin && (
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="h-10 rounded-md font-bold" onClick={openAddDialog}>
+              <Button className="h-10 rounded-md font-bold shadow-sm" onClick={openAddDialog}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Company
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[640px] p-0 overflow-hidden border-none shadow-2xl rounded-2xl">
+            <DialogContent className="sm:max-w-[640px] p-0 overflow-hidden border-none shadow-2xl rounded-2xl flex flex-col max-h-[90vh]">
               <DialogHeader className="p-6 border-b border-hairline">
                 <DialogTitle className="text-heading-lg text-ink">
                   {editingCompanyId ? "Edit Company Profile" : "Create New Company"}
@@ -364,11 +370,14 @@ export function CompanyManagement() {
                   <Label className="text-micro-cap font-black uppercase tracking-widest text-ink-mute">Company Logo</Label>
                   <div className="flex items-center gap-6">
                     <div className="relative group">
-                      <div className="h-24 w-24 rounded-2xl border-2 border-dashed border-hairline bg-canvas-soft flex items-center justify-center overflow-hidden">
+                      <div className={cn(
+                        "h-24 w-24 rounded-2xl border-2 border-dashed border-hairline flex items-center justify-center overflow-hidden transition-colors",
+                        formData.logoHasDarkBg ? "bg-ink shadow-inner" : "bg-canvas-soft"
+                      )}>
                         {formData.logoUrl ? (
-                          <img src={formData.logoUrl} alt="Logo" className="h-full w-full object-contain" />
+                          <img src={formData.logoUrl} alt="Logo" className="h-full w-full object-contain p-2" />
                         ) : (
-                          <Building2 className="h-8 w-8 text-ink-mute" />
+                          <Building2 className={cn("h-8 w-8", formData.logoHasDarkBg ? "text-white/20" : "text-ink-mute")} />
                         )}
                         {isUploading && (
                           <div className="absolute inset-0 bg-canvas/80 flex items-center justify-center">
@@ -387,6 +396,24 @@ export function CompanyManagement() {
                         >
                           <X className="h-3 w-3" />
                         </button>
+                      )}
+                      {formData.logoUrl && (
+                        <div className="flex items-center gap-2 mt-2" onClick={(e) => e.stopPropagation()}>
+                          <Switch 
+                            id="logo-bg-toggle"
+                            checked={formData.logoHasDarkBg}
+                            onCheckedChange={(checked) => {
+                              setFormData(prev => ({ ...prev, logoHasDarkBg: checked }))
+                            }}
+                          />
+                          <Label 
+                            htmlFor="logo-bg-toggle" 
+                            className="text-[10px] font-bold uppercase text-ink-mute cursor-pointer"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            Logo is white (Add background)
+                          </Label>
+                        </div>
                       )}
                     </div>
                     <div className="space-y-1">
@@ -457,6 +484,18 @@ export function CompanyManagement() {
                           value={formData.website}
                           onChange={(e) => setFormData({ ...formData, website: e.target.value })}
                           placeholder="https://acme.com"
+                          className="pl-10 h-11 border-hairline"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs font-black uppercase tracking-widest text-ink-mute">Business Phone</Label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-3 h-4 w-4 text-ink-mute" />
+                        <Input
+                          value={formData.phone}
+                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                          placeholder="+44 20 1234 5678"
                           className="pl-10 h-11 border-hairline"
                         />
                       </div>

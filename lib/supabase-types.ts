@@ -27,6 +27,7 @@ export interface Company {
   payment_base_url: string | null
   tax_id: string | null
   stripe_account_id: string | null
+  logo_has_dark_bg: boolean
   is_active: boolean
   created_at: string
   updated_at: string
