@@ -116,6 +116,7 @@ export function InvoiceGenerator() {
         phone: c.phone || "",
         website: c.website || "",
         logoUrl: c.logo_url || "",
+        logoHasDarkBg: c.logo_has_dark_bg || false,
         paymentBaseUrl: c.payment_base_url || "",
         taxId: c.tax_id || "",
         stripeAccountId: c.stripe_account_id || "",
